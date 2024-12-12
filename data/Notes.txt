@@ -1,0 +1,7 @@
+VIIOdata.mat
+	- Original Name: ogIn-apEx-ogEX_ProcessedData 1sReboundWin correctRoiLoc.mat
+
+
+2021-03-29-14-19-43_video_sched_0-PP-crop-BP-MC-IDPS-ROI-traces.csv
+	- Exported from the Inscopix Data Processing Software
+	- Contains neuropil signals
