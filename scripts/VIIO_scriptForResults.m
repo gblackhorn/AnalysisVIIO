@@ -4,22 +4,17 @@ figFolder = projectSettings.projectFolder;
 
 %% ==========
 % Example showing the difference between raw traces and CNMFe-denoised traces
-% Note: There must be mat and csv files containing traces data in the 'save_dir'
+% Fig1 C, Fig2 A, C
 close all
-
-% Settings for figure
-saveFig = false; % true/false
+saveFig = true; % true/false
 
 % Setup the folder path to save plots
-saveDir = fullfile(projectSettings.projectFolder,'CaImgExample_noStim');
+saveDir = fullfile(projectSettings.resultsFolder,'CaImgExample_noStim');
 
 % Setup the path of the CSV file containing raw traces
 csvTraceFilePath = fullfile(projectSettings.dataFolder  , '2021-03-29-14-19-43_VIIOdataFig1Example.csv');
 
-
 close all
-saveFig = false; % true/false
-saveDir = fullfile(projectSettings.projectFolder,'CaImgExample_noStim');
 csvTraceFilePath = fullfile(projectSettings.dataFolder  , '2021-03-29-14-19-43_VIIOdataFig1Example.csv');
 [figHandles, processedData] = createCaImgExampleFig(projectSettings.VIIOdataNoStimExample,...
 	csvTraceFilePath, saveDir, saveFig);
@@ -32,8 +27,8 @@ csvTraceFilePath = fullfile(projectSettings.dataFolder  , '2021-03-29-14-19-43_V
 % Fig2 B
 
 % % Note: 'event_type' for alignedData must be 'detected_events'
-save_fig = false; % true/false
-save_dir = FolderPathVA.fig;
+saveFig = false; % true/false
+saveDir = fullfile(projectSettings.resultsFolder,'SponEventProp');
 % at.normMethod = 'highpassStd'; % 'none', 'spon', 'highpassStd'. Indicate what value should be used to normalize the traces
 % at.stimNames = ''; % If empty, do not screen recordings with stimulation, instead use all of them
 % at.eventCat = 'spon'; % options: 'trig','trig-ap','rebound','spon', 'rebound'
@@ -54,27 +49,14 @@ traceInfo = cell(1,numel(subNucleiTypes));
 
 % Loop through the subNucleiTypes
 for i = 1:numel({'DAO','PO'})
-	[~,traceInfo{i}] = AlignedCatTracesSinglePlot(alignedData_allTrials,'','spon',...
+	[~,traceInfo{i}] = AlignedCatTracesSinglePlot(VIIOdata,'','spon',...
 		'normMethod','highpassStd','subNucleiType',subNucleiTypes{i},...
 		'showRawtraces',false,'showMedian',false,'medianProp','FWHM',...
 		'plot_combined_data',true,'shadeType','ste','y_range',[-10 20]);
-	% 'sponNorm',at.sponNorm,'normalized',at.normalized,
 
-	if i == 1
-		guiSave = 'on';
-	else
-		guiSave = 'off';
-	end
-	if save_fig
-		save_dir = savePlot(gcf,'guiSave', guiSave, 'save_dir', save_dir, 'fname', traceInfo{i}.fname);
-	end
+	saveDir = savePlot(gcf,'guiSave', 'off', 'save_dir', saveDir, 'fname', traceInfo{i}.fname);
 end
-traceInfo = [traceInfo{:}];
 
-if save_fig
-	save(fullfile(save_dir,'alignedCalTracesInfo'), 'traceInfo');
-	FolderPathVA.fig = save_dir;
-end
 
 
 

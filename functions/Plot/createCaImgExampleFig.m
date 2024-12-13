@@ -67,7 +67,7 @@ set(gcf, 'Renderer', 'painters');
 processedData.eventTimes = eventTime;
 
 % Plot 4: Calcium events scatter plot
-nameEventScatter = sprintf('%s eventScatter [Color: %s]', shortRecName, strrep(opts.colorRepresent, '_', '-'));
+nameEventScatter = sprintf('%s eventScatter', shortRecName);
 colorData = get_TrialEvents_from_alignedData(VIIOdata, opts.colorRepresent); % Scatter colors
 trace_xlim = xlim; % Use x-limits from denoised trace plot
 figHandles.EventScatter = fig_canvas(1, 'unit_width', opts.unitWidth, 'unit_height', opts.unitHeight, 'fig_name', nameEventScatter);

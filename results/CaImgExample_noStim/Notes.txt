@@ -1,0 +1,16 @@
+20210329-141943 denoised by CNMFe
+	- Fig1 C
+		- Some ROIs were selected as representative examples
+			- PO: 16, 15, 6, 10
+			- DAO: 3, 21, 7, 17, 2, 1, 8
+	- Fig2 A background subtracted DF/F
+		- PO: ROI 16
+		- DAO: ROI 2
+
+20210329-141943 RAW with noise
+	- Fig2 A Raw DF/F
+		 - PO: ROI 16
+		 - DAO: ROI 2
+
+20210329-141943 eventScatter
+	- Fig2 C
