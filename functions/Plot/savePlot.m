@@ -63,6 +63,12 @@ function [varargout] = savePlot(fig_handle, varargin)
         disp('Folder for saving plots not chosen.')
         return
     else
+
+        % Create save directory if it doesn't exist
+        if ~exist(save_dir, 'dir')
+            mkdir(save_dir);
+        end
+        
         if isempty(fname)
             fname = datestr(now, 'yyyymmdd_HHMMSS');
         end
