@@ -1,90 +1,119 @@
 function [alignedData_filtered,varargout] = Filter_AlignedDataTraces_withStimEffect_multiTrial(alignedData,varargin)
-	% Filter the ROIs in alignedData_allTrials(x).traces with the field of "stimEffect"
-	% Stimulation_name is used to adjust the filter
-	% 'stimEffect' field contains 3 fields: 'excitation', 'inhibition' and 'rebound'
+%FILTER_ALIGNEDDATATRACES_WITHSTIMEFFECT_MULTITRIAL Filters ROI traces based on stimulation effects across multiple trials.
+%   This function filters ROIs in `alignedData_allTrials(x).traces` using predefined
+%   stimulation effect thresholds. The thresholds are specified for excitation, inhibition,
+%   rebound, and excitatory AP during OG.
+%
+%   USAGE:
+%       [alignedData_filtered, roi_idxWithSubNinfo, roiNum_all, roiNum_kept, roiNum_dis] = ...
+%           Filter_AlignedDataTraces_withStimEffect_multiTrial(alignedData, ...
+%           'stim_names', {'N-O-5s', 'AP-0.1s'}, 'filters', {[0 NaN NaN NaN], [0 NaN NaN NaN]});
+%
+%   INPUT:
+%       alignedData  : Struct array containing multiple trials, each with ROI traces.
+%
+%   OPTIONAL PARAMETERS:
+%       'stim_names' : Cell array of stimulation names. Each corresponds to a specific filter.
+%                     Default: {'N-O-5s', 'AP-0.1s', 'N-O-5s AP-0.1s'}
+%       'filters'    : Cell array of filters for excitation, inhibition, rebound, and exApOg.
+%                     Example: {[0 NaN NaN NaN], [0 NaN NaN NaN]}.
+%                     Filters must match the number of stim_names.
+%
+%   OUTPUT:
+%       alignedData_filtered : Struct array with filtered ROI traces.
+%       roi_idxWithSubNinfo  : Combined ROI indices with sub-information across all trials.
+%       roiNum_all           : Total number of ROIs before filtering.
+%       roiNum_kept          : Number of ROIs kept after filtering.
+%       roiNum_dis           : Number of ROIs discarded after filtering.
+%
+%   EXAMPLE:
+%       [alignedData_filtered, roi_info, total, kept, discarded] = ...
+%           Filter_AlignedDataTraces_withStimEffect_multiTrial(alignedData, ...
+%           'stim_names', {'AP-0.1s'}, 'filters', {[0 NaN NaN NaN]});
 
-	% Example:
-	%	[alignedData_allTrials_filtered] = Filter_AlignedDataTraces_withStimEffect_multiTrial(alignedData_allTrials) 
-	%		
+    % ====================
+    % Parse Inputs Using InputParser
+    p = inputParser;
 
-	% Defaults
-	stim_names = {'og-5s','ap-0.1s','og-5s ap-0.1s'}; % compare the alignedData.stim_name with these strings and decide what filter to use
-	filters = {[nan 1 nan nan], [1 nan nan nan], [nan nan nan nan]}; % [ex in rb exApOg]. ex: excitation. in: inhibition. rb: rebound. exApOg: excitatory AP during OG
-		% filter number must be equal to stim_names
+    % Required input
+    addRequired(p, 'alignedData', @(x) isstruct(x) && isfield(x, 'traces'));
 
-	% Optionals
-	for ii = 1:2:(nargin-1)
-	    if strcmpi('stim_names', varargin{ii}) % trace mean value comparison (stim vs non stim). output of stim_effect_compare_trace_mean_alltrial
-	        stim_names = varargin{ii+1}; % normalize every FluoroData trace with its max value
-	    elseif strcmpi('filters', varargin{ii})
-            filters = varargin{ii+1};
-	    end
-	end
+    % Optional parameters
+    addParameter(p, 'stim_names', {'N-O-5s','AP-0.1s','N-O-5s AP-0.1s'}, @(x) iscell(x) && all(cellfun(@ischar, x)));
+    addParameter(p, 'filters', {[0 nan nan nan], [0 nan nan nan], [0 nan nan nan]}, @(x) iscell(x) && all(cellfun(@isnumeric, x)));
 
-	% ====================
-	% Main contents
+    % Parse inputs
+    parse(p, alignedData, varargin{:});
 
-	% If stim_names only contain one name, such as 'og-5s'. Put this character var into a cell.
-	if isa(stim_names,'char')
-		stim_names = {stim_names}; 
-	end
+    % Assign parsed inputs to variables
+    stim_names = p.Results.stim_names;
+    filters = p.Results.filters;
 
-	% if filters only has a 1*4 numerica array. Put the filters in a cell array
-	if isa(filters,'numeric')
-		filters = {filters};
-	end 
+    % Validate stim_names and filters size consistency
+    if numel(stim_names) ~= numel(filters)
+        error('The number of elements in stim_names must match the number of filters.');
+    end
 
+    % ====================
+    % Initialize Variables
+    alignedData_filtered = alignedData; % Copy input data for filtering
+    trial_num = numel(alignedData_filtered); % Number of trials
 
-	alignedData_filtered = alignedData;
-	trial_num = numel(alignedData_filtered);
+    roiNum_all = 0;  % Total ROI count
+    roiNum_kept = 0; % ROIs retained after filtering
+    roiNum_dis = 0;  % ROIs discarded after filtering
+    disTrialIdx = []; % Trials that do not match stim_names
+    roi_idxWithSubNinfo_cell = cell(1, trial_num); % Cell to store ROI indices with info
 
-	roiNum_all = 0;
-	roiNum_kept = 0;
-	roiNum_dis = 0;
-	disTrialIdx = [];
-	roi_idxWithSubNinfo_cell = cell(1, trial_num);
+    % ====================
+    % Process Trials One by One
+    for tn = 1:trial_num
+        trialData = alignedData_filtered(tn); % Extract data for the current trial
+        if ~isfield(trialData, 'stim_name') || ~isfield(trialData, 'traces')
+            error('Each trial in alignedData must contain fields "stim_name" and "traces".');
+        end
+        roiNum_all = roiNum_all + numel(trialData.traces); % Update total ROI count
 
-	% Filter the trials one by one
-	for tn = 1:trial_num
-		trialData = alignedData_filtered(tn); % data of a single trial
-		roiNum_all = roiNum_all+numel(trialData.traces);
-
-		% Check the stimulation used in a trial and decide what filter to use
-		stimName = trialData.stim_name; % stimulation used in this trial
-		filter_idx = find(strcmpi(stim_names,stimName)); % look for stimName in the stim_names
-		if ~isempty(filter_idx) 
-			filter_chosen = filters{filter_idx}; % Get the filter logical array
-			screen_data_tf = true; % run filter
+        % Determine which filter to use based on stimulation name
+        stimName = trialData.stim_name; % Stimulation name for the trial
+        filter_idx = find(strcmpi(stim_names, stimName)); % Find matching stimulation filter
+        
+        if ~isempty(filter_idx)
+            filter_chosen = filters{filter_idx}; % Use the corresponding filter
+            screen_data_tf = true; % Enable filtering for this trial
         else
-        	disTrialIdx = [disTrialIdx tn];
-            roiNum_dis = roiNum_dis+numel(trialData.traces);
-			screen_data_tf = false; % do not run filter
-		end
+            disTrialIdx = [disTrialIdx tn]; % Mark trial for exclusion
+            roiNum_dis = roiNum_dis + numel(trialData.traces); % Update discarded ROI count
+            screen_data_tf = false; % Skip filtering for this trial
+        end
 
+        % ====================
+        % Apply Filters to ROIs
+        if screen_data_tf
+            trialDataFiltered = trialData;
+            [trialDataFiltered.traces, roi_idx, roi_idxWithSubNinfo_cell{tn}] = ...
+                Filter_AlignedDataTraces_withStimEffect(trialData.traces, ...
+                'ex', filter_chosen(1), 'in', filter_chosen(2), 'rb', filter_chosen(3), 'exApOg', filter_chosen(4));
 
-		% Filter the ROIs in the trials using a specific filter 
-		if screen_data_tf
-			trialDataFiltered = trialData;
-			[trialDataFiltered.traces,roi_idx,roi_idxWithSubNinfo_cell{tn}] = Filter_AlignedDataTraces_withStimEffect(trialData.traces,...
-				'ex',filter_chosen(1),'in',filter_chosen(2),'rb',filter_chosen(3),'exApOg',filter_chosen(4));
+            % Assign filtered traces back to the trial data
+            alignedData_filtered(tn) = trialDataFiltered;
+            roiNum_kept = roiNum_kept + numel(roi_idx); % Update kept ROI count
+            roiNum_dis = roiNum_dis + numel(trialData.traces) - numel(roi_idx); % Update discarded ROI count
 
-			% Assign the filtered ROIs to alignedData_filtered.traces
-			alignedData_filtered(tn) = trialDataFiltered;
-			roiNum_kept = roiNum_kept+numel(roi_idx);
-			roiNum_dis = roiNum_dis+numel(trialData.traces)-numel(roi_idx);
-
-            % Ensure the contents in roi_idxWithSubNinfo_cell{tn} is
-            % horizontal. Add stimulation name to a new field
+            % Ensure the ROI info is horizontal and add stim name
             roi_idxWithSubNinfo_cell{tn} = ensureHorizontal(roi_idxWithSubNinfo_cell{tn});
-            [roi_idxWithSubNinfo_cell{tn}.stim] = deal(stimName);
-		end
-	end
+            [roi_idxWithSubNinfo_cell{tn}.stim] = deal(stimName); % Add stimulation name to ROI info
+        end
+    end
 
-	alignedData_filtered(disTrialIdx) = [];
-	roi_idxWithSubNinfo = [roi_idxWithSubNinfo_cell{:}];
+    % ====================
+    % Finalize Outputs
+    alignedData_filtered(disTrialIdx) = []; % Remove trials without matching stim_names
+    roi_idxWithSubNinfo = [roi_idxWithSubNinfo_cell{:}]; % Combine ROI indices with info
 
-	varargout{1} = roi_idxWithSubNinfo;
-	varargout{2} = roiNum_all;
-	varargout{3} = roiNum_kept;
-	varargout{4} = roiNum_dis;
+    % Assign outputs
+    varargout{1} = roi_idxWithSubNinfo;
+    varargout{2} = roiNum_all;
+    varargout{3} = roiNum_kept;
+    varargout{4} = roiNum_dis;
 end

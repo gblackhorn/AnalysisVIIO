@@ -51,17 +51,14 @@ end
 %% ==========
 % Extract properties of events and group them
 
-% Setup the filters to exclude the ROIs showing the excitatory response to optogenetic activation of
-% N-O terminals
+% Setup the filters to exclude the ROIs showing the excitatory response to optogenetic activation of N-O terminals
 filterROIs = true; % true/false. If true, screen ROIs using the settings below
 StimTags = {'N-O-5s','AP-0.1s','N-O-5s AP-0.1s'}; % {'og-5s','ap-0.1s','og-5s ap-0.1s'}. compare the alignedData.stim_name with these strings and decide what filter to use
 StimEffects = {[0 nan nan nan], [nan nan nan nan], [0 nan nan nan]}; % [ex in rb exApOg]. ex: excitation. in: inhibition. rb: rebound. exApOg: exitatory effect of AP during OG
 
-% Create a dataset only containing the ROIs tagged with cluster info to compare "cluster"
-% and "single" evnets
+% Create a dataset only containing the ROIs tagged with cluster info to compare "cluster" and "single" evnets
 mustHaveField = 'type'; % Field 'type' contains the cluster information (cluster/sync vs. single/async)
-[VIIOdataSynchInfo] = validateAlignedDataStructForEventAnalysis(projectSettings.VIIOdata,...
-	mustHaveField);
+[VIIOdataSynchInfo] = validateAlignedDataStructForEventAnalysis(projectSettings.VIIOdata, mustHaveField);
 
 % Use two ways to group spon events: Separte them using the applied stimulation or not
 sponSepTF = [true, false];
@@ -80,27 +77,27 @@ eventStructFields = {'noSyncTag',...
 	'SyncTagMergeSubN'};
 
 for m = 1:numel(sponSepTF)
+	% Decide the field name based on if spon events are separated using stimulation
 	separateSpon = sponSepTF(m);
+	if sponSepTF(m)
+		% eventStructFieldName = [eventStructFields{n}, 'SponSep'];
+		sponGroupFieldName = 'stimSepratedSpon';
+	else
+		% eventStructFieldName = eventStructFields{n};
+		sponGroupFieldName = 'mergedSpon';
+	end
 
 	for n = 1:numel(groupFields)
 		% Check if 'type' is used for grouping
 		typeTF = strcmp(groupFields{n}, 'type');
-
 		if isempty(find(typeTF, 1))
-			% Use ROIs if 'type' is not used
-			VIIOdata = projectSettings.VIIOdata;
+			VIIOdata = projectSettings.VIIOdata; % Use all ROIs if 'type' is not used
 		else
-			% Use the 'type' containing ROIs
-			VIIOdata = VIIOdataSynchInfo;
+			VIIOdata = VIIOdataSynchInfo; % Use the 'type' containing ROIs
 		end
 
-		if sponSepTF(m)
-			eventStructFieldName = [eventStructFields, 'SponSep'];
-		else
-			eventStructFieldName = eventStructFields;
-		end
-
-		[eventStruct.(eventStructFieldName{n})] = extractAndGroupEvents(VIIOdata, groupFields{n},...
+		% Group events
+		[eventStruct.(sponGroupFieldName).(eventStructFields{n})] = extractAndGroupEvents(VIIOdata, groupFields{n},...
 			'filterROIs',filterROIs,'filterROIsStimTags',StimTags,'filterROIsStimEffects',StimEffects,...
 			'entry', 'event', 'separateSpon', sponSepTF(m), 'modifyEventTypeName', true);
 	end

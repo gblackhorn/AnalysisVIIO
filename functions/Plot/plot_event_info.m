@@ -34,14 +34,6 @@ function [varargout] = plot_event_info(event_info_struct,varargin)
     [bar_data, bar_stat] = plot_bars(event_info_struct, parNames, params);
     plot_cumulative_distributions(event_info_struct, parNames, params);
 
-    % % Un-comment this section to generate optional plots
-    % [hist_data, hist_setting] = plot_histograms(event_info_struct, parNames, params);
-    % histFit_info = plot_histfits(event_info_struct, parNames, params);
-    % if strcmp(params.entryType, 'event')
-    %     scatter_data = plot_scatters(event_info_struct, parNames, params);
-    % else
-    %     scatter_data = struct();
-    % end
 
     % Collect plot data and statistics
     plot_info = collect_plot_info(bar_data, bar_stat);
@@ -120,15 +112,6 @@ function save_dir = setup_save_directory(save_dir, GUIsave)
             error('Folder for saving plots not chosen. Choose one or set "save_fig" to false');
         end
     end
-    % if isempty(savepath_nogui)
-    %     save_dir = uigetdir(save_dir, 'Choose a folder to save plots');
-    %     if save_dir == 0
-    %         disp('Folder for saving plots not chosen. Choose one or set "save_fig" to false');
-    %         save_dir = '';
-    %     end
-    % else
-    %     save_dir = savepath_nogui;
-    % end
 end
 
 function event_info_struct = remove_empty_entries(event_info_struct)
@@ -150,27 +133,6 @@ function parNames = determine_par_names(event_info_struct, parNames)
     end
 end
 
-function [hist_data, hist_setting] = plot_histograms(event_info_struct, parNames, params)
-    hist_data = struct();
-    hist_setting = struct();
-    for pn = 1:numel(parNames)
-        par = parNames{pn};
-        [hist_data.(par), hist_setting.(par)] = plot_event_info_hist(event_info_struct,...
-            par, 'plot_combined_data', params.plot_combined_data,'FontSize',params.FontSize,'FontWeight',params.FontWeight,...
-            'save_fig', params.save_fig, 'save_dir', params.save_dir, 'fname_preffix',params.fname_preffix,'nbins', 200);
-    end
-end
-
-function histFit_info = plot_histfits(event_info_struct, parNames, params)
-    histFit_info = struct();
-    for pn = 1:numel(parNames)
-        par = parNames{pn};
-        histFit_info.(par) = plot_event_info_histfit(event_info_struct,par,'dist_type','normal',...
-            'save_fig', params.save_fig, 'save_dir', params.save_dir, 'fname_preffix',params.fname_preffix,...
-            'xRange',[-0.2 2],'nbins', 20,'FontSize',params.FontSize,'FontWeight',params.FontWeight);
-    end
-end
-
 function [bar_data, bar_stat] = plot_bars(event_info_struct, parNames, params)
     bar_data = struct();
     bar_stat = struct();
@@ -180,10 +142,6 @@ function [bar_data, bar_stat] = plot_bars(event_info_struct, parNames, params)
     [f_bar, f_rowNum, f_colNum] = fig_canvas(parNum, 'fig_name', [params.fname_preffix, ' bar plots']);
     f_stat = fig_canvas(parNum, 'fig_name', [params.fname_preffix, ' bar stat']);
     f_violin = fig_canvas(parNum, 'fig_name', [params.fname_preffix, ' violin plots']);
-    % f_bar = create_figure([params.fname_preffix, ' bar plots']);
-    % f_stat = create_figure([params.fname_preffix, ' bar stat']);
-    % set(f_stat, 'Position', [0.05 0.1 0.95 0.4]);
-    % f_violin = create_figure([params.fname_preffix, ' violin plots']);
 
     tlo_bar = tiledlayout(f_bar, ceil(numel(parNames)/f_colNum), f_colNum);
     tlo_barstat = tiledlayout(f_stat, ceil(numel(parNames)/f_colNum)*2+1, f_colNum);
@@ -354,206 +312,12 @@ function plot_cumulative_distributions(event_info_struct, parNames, params)
     end
 end
 
-function scatter_data = plot_scatters(event_info_struct, parNames, params)
-    scatter_data = struct();
 
-    % Define scatter plot parameters
-    duration_val_idx = find(contains(parNames, 'duration'));
-    mag_val_idx = find(contains(parNames, 'mag_delta'));
-    mag_norm_val_idx = find(contains(parNames, 'peak_delta_norm_hpstd'));
-    all_mag_val_idx = [mag_val_idx; mag_norm_val_idx];
-    all_slope_val_idx = find(contains(parNames, 'slope'));
-    norm_slope_val_idx = find(contains(parNames, 'peak_slope_norm_hpstd'));
-    slope_val_idx = setdiff(all_slope_val_idx, norm_slope_val_idx);
-    baseDiff_idx = find(contains(parNames, 'baseDiff'));
-    baseDiffRise_idx = find(contains(parNames, 'baseDiffRise'));
-    riseDelay_idx = find(contains(parNames, 'rise_delay'));
-
-    % Scatter plot of event width vs. preEvent time interval
-    plot_scatter(event_info_struct, 'FWHM', 'preEventIntPeak', 'ScatterPlot FWHM vs preEvent time interval', params, scatter_data);
-
-    % Scatter plot of event peakMagDelta vs. preEvent time interval
-    plot_scatter(event_info_struct, 'peak_mag_delta', 'preEventIntPeak', 'ScatterPlot peakMagDelta vs preEvent time interval', params, scatter_data);
-
-    % Additional scatter plots
-    if ~isempty(duration_val_idx)
-        plot_additional_scatters(event_info_struct, parNames, duration_val_idx, all_mag_val_idx, all_slope_val_idx, params, scatter_data);
-    end
-    if ~isempty(mag_val_idx)
-        plot_mag_vs_slope(event_info_struct, parNames, mag_val_idx, slope_val_idx, params, scatter_data);
-    end
-    if ~isempty(mag_norm_val_idx)
-        plot_mag_norm_vs_slope_norm(event_info_struct, parNames, mag_norm_val_idx, norm_slope_val_idx, params, scatter_data);
-    end
-    if ~isempty(baseDiff_idx)
-        plot_baseDiff_vs_mag(event_info_struct, parNames, baseDiff_idx, mag_val_idx, params, scatter_data);
-        plot_baseDiff_vs_duration(event_info_struct, parNames, baseDiff_idx, duration_val_idx, params, scatter_data);
-    end
-    if ~isempty(baseDiffRise_idx)
-        plot_baseDiffRise_vs_mag(event_info_struct, parNames, baseDiffRise_idx, mag_val_idx, params, scatter_data);
-    end
-    if ~isempty(riseDelay_idx)
-        plot_riseDelay_vs_other_params(event_info_struct, parNames, riseDelay_idx, duration_val_idx, mag_val_idx, params, scatter_data);
-    end
-end
-
-function plot_scatter(event_info_struct, y_param, x_param, fig_name, params, scatter_data)
-    f_scatter = create_figure(fig_name);
-    tlo_scatter = tiledlayout(f_scatter, ceil(numel(event_info_struct)/4), 4);
-
-    for gn = 1:numel(event_info_struct)
-        ax_scatter = nexttile(tlo_scatter);
-        y_data = [event_info_struct(gn).event_info.(y_param)]';
-        x_data = [event_info_struct(gn).event_info.(x_param)]';
-        cellDataWithoutNaN = rmNaN({x_data, y_data});
-        x_data = cellDataWithoutNaN{1};
-        y_data = cellDataWithoutNaN{2};
-        stylishScatter(x_data, y_data, 'plotWhere', ax_scatter, 'titleStr', event_info_struct(gn).group,...
-            'xlabelStr', x_param, 'ylabelStr', y_param, 'showCorrCoef', true);
-        scatter_data.(fig_name) = [x_data, y_data];
-    end
-
-    if params.save_fig
-        fname = sprintf('%s-%s', fig_name, params.fname_preffix);
-        savePlot(f_scatter, 'guiSave', 'off', 'save_dir', params.save_dir, 'fname', fname);
-    end
-end
-
-function plot_additional_scatters(event_info_struct, parNames, duration_val_idx, all_mag_val_idx, all_slope_val_idx, params)
-    duration_par_num = numel(duration_val_idx);
-    for dn = 1:duration_par_num
-        par_duration = parNames{duration_val_idx(dn)};
-        if ~isempty(all_mag_val_idx)
-            plot_duration_vs_mag(event_info_struct, par_duration, parNames, all_mag_val_idx, params);
-        end
-        if ~isempty(all_slope_val_idx)
-            plot_duration_vs_slope(event_info_struct, par_duration, parNames, all_slope_val_idx, params);
-        end
-    end
-end
-
-function plot_duration_vs_mag(event_info_struct, par_duration, parNames, all_mag_val_idx, params)
-    mag_par_num = numel(all_mag_val_idx);
-    for mn = 1:mag_par_num
-        par_mag = parNames{all_mag_val_idx(mn)};
-        plot_event_info_scatter(event_info_struct, par_duration, par_mag, 'FontSize', params.FontSize,...
-            'FontWeight', params.FontWeight, 'save_fig', params.save_fig, 'save_dir', params.save_dir,...
-            'fname_preffix', params.fname_preffix);
-    end
-end
-
-function plot_duration_vs_slope(event_info_struct, par_duration, parNames, all_slope_val_idx, params)
-    slope_par_num = numel(all_slope_val_idx);
-    for sn = 1:slope_par_num
-        par_slope = parNames{all_slope_val_idx(sn)};
-        plot_event_info_scatter(event_info_struct, par_duration, par_slope, 'FontSize', params.FontSize,...
-            'FontWeight', params.FontWeight, 'save_fig', params.save_fig, 'save_dir', params.save_dir,...
-            'fname_preffix', params.fname_preffix);
-    end
-end
-
-function plot_mag_vs_slope(event_info_struct, parNames, mag_val_idx, slope_val_idx, params)
-    mag_par_num = numel(mag_val_idx);
-    for mn = 1:mag_par_num
-        par_mag = parNames{mag_val_idx(mn)};
-        slope_par_num = numel(slope_val_idx);
-        for sn = 1:slope_par_num
-            par_slope = parNames{slope_val_idx(sn)};
-            plot_event_info_scatter(event_info_struct, par_mag, par_slope, 'FontSize', params.FontSize,...
-                'FontWeight', params.FontWeight, 'save_fig', params.save_fig, 'save_dir', params.save_dir,...
-                'fname_preffix', params.fname_preffix);
-        end
-    end
-end
-
-function plot_mag_norm_vs_slope_norm(event_info_struct, parNames, mag_norm_val_idx, norm_slope_val_idx, params)
-    mag_norm_par_num = numel(mag_norm_val_idx);
-    for mn = 1:mag_norm_par_num
-        par_mag_norm = parNames{mag_norm_val_idx(mn)};
-        slope_norm_par_num = numel(norm_slope_val_idx);
-        for sn = 1:slope_norm_par_num
-            par_slope_norm = parNames{norm_slope_val_idx(sn)};
-            plot_event_info_scatter(event_info_struct, par_mag_norm, par_slope_norm, 'FontSize', params.FontSize,...
-                'FontWeight', params.FontWeight, 'save_fig', params.save_fig, 'save_dir', params.save_dir,...
-                'fname_preffix', params.fname_preffix);
-        end
-    end
-end
-
-function plot_baseDiff_vs_mag(event_info_struct, parNames, baseDiff_idx, mag_val_idx, params)
-    baseDiff_num = numel(baseDiff_idx);
-    for bn = 1:baseDiff_num
-        par_baseDiff = parNames{baseDiff_idx(bn)};
-        mag_par_num = numel(mag_val_idx);
-        for mn = 1:mag_par_num
-            par_mag = parNames{mag_val_idx(mn)};
-            plot_event_info_scatter(event_info_struct, par_baseDiff, par_mag, 'FontSize', params.FontSize,...
-                'FontWeight', params.FontWeight, 'save_fig', params.save_fig, 'save_dir', params.save_dir,...
-                'fname_preffix', params.fname_preffix);
-        end
-    end
-end
-
-function plot_baseDiff_vs_duration(event_info_struct, parNames, baseDiff_idx, duration_val_idx, params)
-    baseDiff_num = numel(baseDiff_idx);
-    for bn = 1:baseDiff_num
-        par_baseDiff = parNames{baseDiff_idx(bn)};
-        duration_par_num = numel(duration_val_idx);
-        for dn = 1:duration_par_num
-            par_duration = parNames{duration_val_idx(dn)};
-            plot_event_info_scatter(event_info_struct, par_baseDiff, par_duration, 'FontSize', params.FontSize,...
-                'FontWeight', params.FontWeight, 'save_fig', params.save_fig, 'save_dir', params.save_dir,...
-                'fname_preffix', params.fname_preffix);
-        end
-    end
-end
-
-function plot_baseDiffRise_vs_mag(event_info_struct, parNames, baseDiffRise_idx, mag_val_idx, params)
-    baseDiffRise_num = numel(baseDiffRise_idx);
-    for bn = 1:baseDiffRise_num
-        par_baseDiffRise = parNames{baseDiffRise_idx(bn)};
-        mag_par_num = numel(mag_val_idx);
-        for mn = 1:mag_par_num
-            par_mag = parNames{mag_val_idx(mn)};
-            plot_event_info_scatter(event_info_struct, par_baseDiffRise, par_mag, 'FontSize', params.FontSize,...
-                'FontWeight', params.FontWeight, 'save_fig', params.save_fig, 'save_dir', params.save_dir,...
-                'fname_preffix', params.fname_preffix);
-        end
-    end
-end
-
-function plot_riseDelay_vs_other_params(event_info_struct, parNames, riseDelay_idx, duration_val_idx, mag_val_idx, params)
-    par_riseDelay = parNames{riseDelay_idx};
-    if ~isempty(duration_val_idx)
-        duration_val_num = numel(duration_val_idx);
-        for dvn = 1:duration_val_num
-            par_duration_val = parNames{duration_val_idx(dvn)};
-            plot_event_info_scatter(event_info_struct, par_riseDelay, par_duration_val, 'FontSize', params.FontSize,...
-                'FontWeight', params.FontWeight, 'save_fig', params.save_fig, 'save_dir', params.save_dir,...
-                'fname_preffix', params.fname_preffix);
-        end
-    end
-    if ~isempty(mag_val_idx)
-        mag_val_num = numel(mag_val_idx);
-        for mvn = 1:mag_val_num
-            par_mag_val = parNames{mag_val_idx(mvn)};
-            plot_event_info_scatter(event_info_struct, par_riseDelay, par_mag_val, 'FontSize', params.FontSize,...
-                'FontWeight', params.FontWeight, 'save_fig', params.save_fig, 'save_dir', params.save_dir,...
-                'fname_preffix', params.fname_preffix);
-        end
-    end
-end
 
 function plot_info = collect_plot_info(bar_data, bar_stat)
     % Initialize plot_info struct
     plot_info = struct();
 
-    % Collect plot data and statistics
-    % if exist('hist_data', 'var')
-    %     plot_info.hist_data = hist_data;
-    %     plot_info.hist_setting = hist_setting;
-    %     plot_info.histFit_info = histFit_info;
-    % end
     if exist('bar_data', 'var')
         plot_info.dataStruct = bar_data;
         plot_info.statStruct= bar_stat;
@@ -575,16 +339,7 @@ function save_all_LLM_modelCompTab(bar_stat, namePrefix, saveDir)
     for n = 1:numel(paramNames)
         texFilename = sprintf('%s %s modelCompTab.tex',namePrefix, paramNames{n});
         captionStr = sprintf('%s %s %s', namePrefix, paramNames{n}, bar_stat.(paramNames{n}).modelInfoStr);
-        % if ~isfield(paramNames{n}.method, 'Distribution')
-        %     % LMM: No distribution field
-        %     captionStr = sprintf('%s %s LMM modelCompTab', namePrefix, paramNames{n});
-        % else
-        %     % GLMM: Use 'Distribution' and 'Link' content
-        %     captionStr = sprintf('%s %s GLMM modelCompTab [Distribution: %s. Link: %s]',...
-        %         namePrefix, paramNames{n},...
-        %         bar_stat.(paramNames{n}).method.Distribution,...
-        %         bar_stat.(paramNames{n}).method.Link.Name);
-        % end
+
         tableToLatex(bar_stat.(paramNames{n}).chiLRT, 'saveToFile',true,'filename',...
             fullfile(saveDir,texFilename), 'caption', captionStr,...
             'columnAdjust', 'cXccccccc');
