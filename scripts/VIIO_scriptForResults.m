@@ -20,14 +20,13 @@ csvTraceFilePath = fullfile(projectSettings.dataFolder  , '2021-03-29-14-19-43_V
 	csvTraceFilePath, saveDir, saveFig);
 
 
-
 %% ==========
 % Create the mean spontaneous traces in DAO and PO
 % Note: Load mat file containing all the recordings 
 % Fig2 B
 close all
 saveFig = true; % true/false
-saveDir = fullfile(projectSettings.resultsFolder,'SponEventProp');
+saveDir = fullfile(projectSettings.resultsFolder,'SponEventExample');
 subNucleiTypes = {'DAO','PO'}; % Separate ROIs using the subnuclei tag.
 
 % Create a cell to store the trace info
@@ -49,7 +48,13 @@ end
 
 
 %% ==========
-% Extract properties of events and group them
+% Extract properties of events, group them, and analyze their properties
+% Settings for plots
+saveFig = false; % true/false
+saveDir = fullfile(projectSettings.resultsFolder,'EventProp');
+props = {'FWHM','peak_delta_norm_hpstd','rise_duration', 'peak_delay'}; % Properties to by analyzed
+dataDist = 'posSkewed'; % Setup data distribution for GLMM fitting
+
 
 % Setup the filters to exclude the ROIs showing the excitatory response to optogenetic activation of N-O terminals
 filterROIs = true; % true/false. If true, screen ROIs using the settings below
@@ -78,7 +83,6 @@ eventStructFields = {'noSyncTag',...
 
 for m = 1:numel(sponSepTF)
 	% Decide the field name based on if spon events are separated using stimulation
-	separateSpon = sponSepTF(m);
 	if sponSepTF(m)
 		% eventStructFieldName = [eventStructFields{n}, 'SponSep'];
 		sponGroupFieldName = 'stimSepratedSpon';
@@ -100,6 +104,17 @@ for m = 1:numel(sponSepTF)
 		[eventStruct.(sponGroupFieldName).(eventStructFields{n})] = extractAndGroupEvents(VIIOdata, groupFields{n},...
 			'filterROIs',filterROIs,'filterROIsStimTags',StimTags,'filterROIsStimEffects',StimEffects,...
 			'entry', 'event', 'separateSpon', sponSepTF(m), 'modifyEventTypeName', true);
+
+		% Setup the comparison types, GLMM parameters for analysis and plots
+		[mmModel, mmHierarchicalVars, mmDistribution, mmLink, organizeStruct] =...
+		 VIIOinitEventPropAnalysis(groupFields{n}, 'dataDist', dataDist, 'separateSPONT', sponSepTF(m));
+
+		% Analyze and plot eventProp
+        subFolder = fullfile(saveDir, sponGroupFieldName, eventStructFields{n});
+		[~, ~] = plotEventPropMultiGroups(eventStruct.(sponGroupFieldName).(eventStructFields{n}), props, organizeStruct,...
+			'mmModel', mmModel, 'mmHierarchicalVars', mmHierarchicalVars, 'mmDistribution', mmDistribution, 'mmLink', mmLink,...
+			'saveFig', saveFig, 'saveDir', subFolder);
+
 	end
 end
 

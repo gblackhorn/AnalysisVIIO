@@ -84,7 +84,7 @@ function [varargout] = plotEventPropMultiGroups(groupedEventProp,props,organizeS
 			GUIsave = false; % Use the locations chosen before to save figures
 		end
 
-		[saveDir, propDataAndStat] = plot_event_info(groupedEventPropFiltered,'entryType',entryType,...
+		[saveDir, propDataAndStat] = plot_event_info(organizeStruct(en).data,'entryType',entryType,...
 			'plot_combined_data', plot_combined_data, 'parNames', props, 'stat', stat,...
 			'mmModel', mmModel, 'mmGroup', organizeStruct(en).mmFixCat,...
 			'mmHierarchicalVars', mmHierarchicalVars, 'mmDistribution', mmDistribution, 'mmLink', mmLink,...
@@ -95,7 +95,7 @@ function [varargout] = plotEventPropMultiGroups(groupedEventProp,props,organizeS
 
 		% Create a UI table displaying the n numberss
 		fNumName = [organizeStruct(en).title,' nNumInfo'];
-		[fNum, tabNum] = nNumberTab(groupedEventPropFiltered, entryType, 'figName', fNumName);
+		[fNum, tabNum] = nNumberTab(organizeStruct(en).data, entryType, 'figName', fNumName);
 
 		% Save data
 		if saveFig

@@ -153,7 +153,7 @@ function [data_struct,varargout] = plot_event_info_bar(event_info_struct,par_nam
 		saveas(gcf, [fig_path, '.svg']);
 	end
 
-	if stat && group_num>1% run one-way anova or not
+	if stat && group_num>1 
 		if ~isempty(mmModel)
 			structData = [event_info_struct(:).event_info];
 			[me,fixedEffectsStats,chiLRT,mmPvalue,multiComparisonResults,statInfo]= mixed_model_analysis(structData,...
