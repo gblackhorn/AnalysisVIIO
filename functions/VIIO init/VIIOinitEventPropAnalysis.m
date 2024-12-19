@@ -54,15 +54,15 @@ function [mmModel, mmHierarchicalVars, mmDistribution, mmLink, organizeStruct] =
             organizeStruct(4).keepGroups = {'opto-delay [N-O-5s]-PO', 'spon-PO'};
             organizeStruct(4).mmFixCat = 'peak_category';
 
-            organizeStruct(5).title = '[OGOFF-TRIG] PO2DAO';
+            organizeStruct(5).title = '[N-O-REBOUND] PO2DAO';
             organizeStruct(5).keepGroups = {'rebound [N-O-5s]'};
             organizeStruct(5).mmFixCat = 'subNuclei';
 
-            organizeStruct(6).title = '[OGOFF-TRIG]2[SPONT] DAO';
+            organizeStruct(6).title = '[N-O-REBOUND]2[SPONT] DAO';
             organizeStruct(6).keepGroups = {'rebound [N-O-5s]-DAO', 'spon-DAO'};
             organizeStruct(6).mmFixCat = 'peak_category';
 
-            organizeStruct(7).title = '[OGOFF-TRIG]2[SPONT] PO';
+            organizeStruct(7).title = '[N-O-REBOUND]2[SPONT] PO';
             organizeStruct(7).keepGroups = {'rebound [N-O-5s]-PO', 'spon-PO'};
             organizeStruct(7).mmFixCat = 'peak_category';
 
@@ -78,22 +78,22 @@ function [mmModel, mmHierarchicalVars, mmDistribution, mmLink, organizeStruct] =
             organizeStruct(10).keepGroups = {'trig [AP-0.1s]-PO', 'spon-PO'};
             organizeStruct(10).mmFixCat = 'peak_category';
 
-            organizeStruct(11).title = '[AP-TRIG]2[OGAP-TRIG] PO';
+            organizeStruct(11).title = '[AP-TRIG]2[N-O&AP-TRIG] PO';
             organizeStruct(11).keepGroups = {'trig [AP-0.1s]-PO', 'trig-ap [N-O-5s AP-0.1s]-PO'};
             organizeStruct(11).mmFixCat = 'peak_category';
 
-            organizeStruct(12).title = '[OGAP-TRIG]2[SPONT] PO';
+            organizeStruct(12).title = '[N-O&AP-TRIG]2[SPONT] PO';
             organizeStruct(12).keepGroups = {'trig-ap [N-O-5s AP-0.1s]-PO', 'spon-PO'};
             organizeStruct(12).mmFixCat = 'peak_category';
 
         % Compare properties of events grouped only using peak_category
         elseif isequal(groupSettingsType, {'peak_category'})
             organizeStruct(1).title = '[OG-SPONT]2[SPONT] ALLsubN';
-            organizeStruct(1).keepGroups = {'opto-delay [N-O-5s]', 'spon [N-O-5s]'};
+            organizeStruct(1).keepGroups = {'opto-delay [N-O-5s]', 'spon'};
             organizeStruct(1).mmFixCat = 'peak_category';
 
-            organizeStruct(2).title = '[OGOFF-TRIG]2[SPONT] ALLsubN';
-            organizeStruct(2).keepGroups = {'rebound [N-O-5s]', 'spon [N-O-5s]'};
+            organizeStruct(2).title = '[N-O-REBOUND]2[SPONT] ALLsubN';
+            organizeStruct(2).keepGroups = {'rebound [N-O-5s]', 'spon'};
             organizeStruct(2).mmFixCat = 'peak_category';
 
         % Events were grouped using category, subnuclei location and cluster/single type
@@ -140,18 +140,18 @@ function [mmModel, mmHierarchicalVars, mmDistribution, mmLink, organizeStruct] =
             organizeStruct(8).mmFixCat = 'peak_category';
             organizeStruct(8).colorGroup = {'#003264', '#00AAD4'};
 
-            % OGAP-TRIG 
-            organizeStruct(9).title = '[OGAP-TRIG] cluster2single PO';
+            % N-O&AP-TRIG 
+            organizeStruct(9).title = '[N-O&AP-TRIG] cluster2single PO';
             organizeStruct(9).keepGroups = {'trig-ap [N-O-5s AP-0.1s]-PO'};
             organizeStruct(9).mmFixCat = 'type';
             organizeStruct(9).colorGroup = {'#8C0383', '#FF00CC'};
 
-            organizeStruct(10).title = '[OGAP-TRIG]2[AP-TRIG] cluster PO';
+            organizeStruct(10).title = '[N-O&AP-TRIG]2[AP-TRIG] cluster PO';
             organizeStruct(10).keepGroups = {'trig-ap [N-O-5s AP-0.1s]-PO-cluster', 'trig [AP-0.1s]-PO-cluster'};
             organizeStruct(10).mmFixCat = 'peak_category';
             organizeStruct(10).colorGroup = {'#8C0383', '#FF00CC'};
 
-            organizeStruct(11).title = '[OGAP-TRIG]2[AP-TRIG] single PO';
+            organizeStruct(11).title = '[N-O&AP-TRIG]2[AP-TRIG] single PO';
             organizeStruct(11).keepGroups = {'trig-ap [N-O-5s AP-0.1s]-PO-single', 'trig [AP-0.1s]-PO-single'};
             organizeStruct(11).mmFixCat = 'peak_category';
             organizeStruct(11).colorGroup = {'#8C0383', '#FF00CC'};
@@ -166,28 +166,28 @@ function [mmModel, mmHierarchicalVars, mmDistribution, mmLink, organizeStruct] =
             organizeStruct(1).colorGroup = {'#8C0383', '#FF00CC'};
 
             organizeStruct(2).title = '[OG-SPONT]2[SPONT] cluster ALLsubN';
-            organizeStruct(2).keepGroups = {'opto-delay [N-O-5s]-cluster', 'spon [N-O-5s]-cluster'};
+            organizeStruct(2).keepGroups = {'opto-delay [N-O-5s]-cluster', 'spon-cluster'};
             organizeStruct(2).mmFixCat = 'peak_category';
             organizeStruct(2).colorGroup = {'#8C0383', '#FF00CC'};
 
             organizeStruct(3).title = '[OG-SPONT]2[SPONT] single ALLsubN';
-            organizeStruct(3).keepGroups = {'opto-delay [N-O-5s]-single', 'spon [N-O-5s]-single'};
+            organizeStruct(3).keepGroups = {'opto-delay [N-O-5s]-single', 'spon-single'};
             organizeStruct(3).mmFixCat = 'peak_category';
             organizeStruct(3).colorGroup = {'#8C0383', '#FF00CC'};
 
-            % OGOFF-TRIG (Combine subN for bigger nNum)
-            organizeStruct(4).title = '[OGOFF-TRIG] cluster2single ALL';
+            % N-O-REBOUND (Combine subN for bigger nNum)
+            organizeStruct(4).title = '[N-O-REBOUND] cluster2single ALLsubN';
             organizeStruct(4).keepGroups = {'rebound [N-O-5s]'};
             organizeStruct(4).mmFixCat = 'type';
             organizeStruct(3).colorGroup = {'#8C0383', '#FF00CC'};
 
-            organizeStruct(5).title = '[OGOFF-TRIG]2[SPONT] cluster ALLsubN';
-            organizeStruct(5).keepGroups = {'rebound [N-O-5s]-cluster', 'spon [N-O-5s]-cluster'};
+            organizeStruct(5).title = '[N-O-REBOUND]2[SPONT] cluster ALLsubN';
+            organizeStruct(5).keepGroups = {'rebound [N-O-5s]-cluster', 'spon-cluster'};
             organizeStruct(5).mmFixCat = 'peak_category';
             organizeStruct(5).colorGroup = {'#8C0383', '#FF00CC'};
 
-            organizeStruct(6).title = '[OGOFF-TRIG]2[SPONT] single ALLsubN';
-            organizeStruct(6).keepGroups = {'rebound [N-O-5s]-single', 'spon [N-O-5s]-single'};
+            organizeStruct(6).title = '[N-O-REBOUND]2[SPONT] single ALLsubN';
+            organizeStruct(6).keepGroups = {'rebound [N-O-5s]-single', 'spon-single'};
             organizeStruct(6).mmFixCat = 'peak_category';
             organizeStruct(6).colorGroup = {'#8C0383', '#FF00CC'};
         end
@@ -204,11 +204,11 @@ function [mmModel, mmHierarchicalVars, mmDistribution, mmLink, organizeStruct] =
             organizeStruct(2).keepGroups = {'spon [N-O-5s]-PO', 'opto-delay [N-O-5s]-PO'};
             organizeStruct(2).mmFixCat = 'peak_category';
 
-            organizeStruct(3).title = '[OGOFF-TRIG]2[SPONT] DAO';
+            organizeStruct(3).title = '[N-O-REBOUND]2[SPONT] DAO';
             organizeStruct(3).keepGroups = {'spon [N-O-5s]-DAO', 'rebound [N-O-5s]-DAO'};
             organizeStruct(3).mmFixCat = 'peak_category';
 
-            organizeStruct(4).title = '[OGOFF-TRIG]2[SPONT] PO';
+            organizeStruct(4).title = '[N-O-REBOUND]2[SPONT] PO';
             organizeStruct(4).keepGroups = {'spon [N-O-5s]-PO', 'rebound [N-O-5s]-PO'};
             organizeStruct(4).mmFixCat = 'peak_category';
 
@@ -220,7 +220,7 @@ function [mmModel, mmHierarchicalVars, mmDistribution, mmLink, organizeStruct] =
             organizeStruct(6).keepGroups = {'spon [AP-0.1s]-PO', 'trig [AP-0.1s]-PO'};
             organizeStruct(6).mmFixCat = 'peak_category';
 
-            organizeStruct(7).title = '[OGAP-TRIG]2[SPONT] PO';
+            organizeStruct(7).title = '[N-O&AP-TRIG]2[SPONT] PO';
             organizeStruct(7).keepGroups = {'trig-ap [N-O-5s AP-0.1s]-PO', 'spon [N-O-5s AP-0.1s]-PO'};
             organizeStruct(7).mmFixCat = 'peak_category';
 
@@ -232,7 +232,7 @@ function [mmModel, mmHierarchicalVars, mmDistribution, mmLink, organizeStruct] =
             organizeStruct(1).keepGroups = {'opto-delay [N-O-5s]', 'spon [N-O-5s]'};
             organizeStruct(1).mmFixCat = 'peak_category';
 
-            organizeStruct(2).title = '[OGOFF-TRIG]2[SPONT] ALL';
+            organizeStruct(2).title = '[N-O-REBOUND]2[SPONT] ALL';
             organizeStruct(2).keepGroups = {'rebound [N-O-5s]', 'spon [N-O-5s]'};
             organizeStruct(2).mmFixCat = 'peak_category';
 
@@ -249,14 +249,14 @@ function [mmModel, mmHierarchicalVars, mmDistribution, mmLink, organizeStruct] =
             organizeStruct(2).mmFixCat = 'peak_category';
             organizeStruct(2).colorGroup = {'#003264', '#00AAD4'};
 
-            % OGAP-TRIG
-            organizeStruct(3).title = '[OGAP-TRIG]2[SPONT] cluster PO';
-            organizeStruct(3).keepGroups = {'trig-ap [N-O-5s AP-0.1s]-PO-cluster', 'spon [N-O-5s AP-0.1s]-cluster'};
+            % N-O&AP-TRIG
+            organizeStruct(3).title = '[N-O&AP-TRIG]2[SPONT] cluster PO';
+            organizeStruct(3).keepGroups = {'trig-ap [N-O-5s AP-0.1s]-PO-cluster', 'spon [N-O-5s AP-0.1s]-PO-cluster'};
             organizeStruct(3).mmFixCat = 'peak_category';
             organizeStruct(3).colorGroup = {'#8C0383', '#FF00CC'};
 
-            organizeStruct(4).title = '[OGAP-TRIG]2[SPONT] single PO';
-            organizeStruct(4).keepGroups = {'trig-ap [N-O-5s AP-0.1s]-PO-single', 'spon [N-O-5s AP-0.1s]-single'};
+            organizeStruct(4).title = '[N-O&AP-TRIG]2[SPONT] single PO';
+            organizeStruct(4).keepGroups = {'trig-ap [N-O-5s AP-0.1s]-PO-single', 'spon [N-O-5s AP-0.1s]-PO-single'};
             organizeStruct(4).mmFixCat = 'peak_category';
             organizeStruct(4).colorGroup = {'#8C0383', '#FF00CC'};
 
@@ -294,13 +294,13 @@ function [mmModel, mmHierarchicalVars, mmDistribution, mmLink, organizeStruct] =
             organizeStruct(2).mmFixCat = 'peak_category';
             organizeStruct(2).colorGroup = {'#8C0383', '#FF00CC'};
 
-            % OGOFF-TRIG (Combine subN for bigger nNum)
-            organizeStruct(3).title = '[OGOFF-TRIG]2[SPONT] cluster ALLsubN';
+            % N-O-REBOUND (Combine subN for bigger nNum)
+            organizeStruct(3).title = '[N-O-REBOUND]2[SPONT] cluster ALLsubN';
             organizeStruct(3).keepGroups = {'rebound [N-O-5s]-cluster', 'spon [N-O-5s]-cluster'};
             organizeStruct(3).mmFixCat = 'peak_category';
             organizeStruct(3).colorGroup = {'#8C0383', '#FF00CC'};
 
-            organizeStruct(4).title = '[OGOFF-TRIG]2[SPONT] single ALLsubN';
+            organizeStruct(4).title = '[N-O-REBOUND]2[SPONT] single ALLsubN';
             organizeStruct(4).keepGroups = {'rebound [N-O-5s]-single', 'spon [N-O-5s]-single'};
             organizeStruct(4).mmFixCat = 'peak_category';
             organizeStruct(4).colorGroup = {'#8C0383', '#FF00CC'};

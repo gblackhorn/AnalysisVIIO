@@ -78,20 +78,26 @@ function [varargout] = plotEventPropMultiGroups(groupedEventProp,props,organizeS
 
 		organizeStruct(en).data = groupedEventPropFiltered;
 
-		if en == 1
-			GUIsave = true; % Choose locations to save figures
-		else
-			GUIsave = false; % Use the locations chosen before to save figures
-		end
-
-		[saveDir, propDataAndStat] = plot_event_info(organizeStruct(en).data,'entryType',entryType,...
-			'plot_combined_data', plot_combined_data, 'parNames', props, 'stat', stat,...
+		% Analyze and plot event properties
+		[statInfo] = plotEventProp(organizeStruct(en).data, props, 'fnamePrefix', organizeStruct(en).title,...
 			'mmModel', mmModel, 'mmGroup', organizeStruct(en).mmFixCat,...
 			'mmHierarchicalVars', mmHierarchicalVars, 'mmDistribution', mmDistribution, 'mmLink', mmLink,...
-			'colorGroup', colorGroup, 'fname_preffix', organizeStruct(en).title,...
-			'save_fig', saveFig, 'save_dir', saveDir, 'GUIsave', GUIsave);
+			'saveFig', saveFig, 'saveDir', saveDir);
 
-		organizeStruct(en).plotInfo = propDataAndStat;
+		% if en == 1
+		% 	GUIsave = true; % Choose locations to save figures
+		% else
+		% 	GUIsave = false; % Use the locations chosen before to save figures
+		% end
+
+		% [saveDir, propDataAndStat] = plot_event_info(organizeStruct(en).data,'entryType',entryType,...
+		% 	'plot_combined_data', plot_combined_data, 'parNames', props, 'stat', stat,...
+		% 	'mmModel', mmModel, 'mmGroup', organizeStruct(en).mmFixCat,...
+		% 	'mmHierarchicalVars', mmHierarchicalVars, 'mmDistribution', mmDistribution, 'mmLink', mmLink,...
+		% 	'colorGroup', colorGroup, 'fname_preffix', organizeStruct(en).title,...
+		% 	'save_fig', saveFig, 'save_dir', saveDir, 'GUIsave', GUIsave);
+
+		% organizeStruct(en).plotInfo = propDataAndStat;
 
 		% Create a UI table displaying the n numberss
 		fNumName = [organizeStruct(en).title,' nNumInfo'];
@@ -109,9 +115,9 @@ function [varargout] = plotEventPropMultiGroups(groupedEventProp,props,organizeS
 			    fullfile(saveDir,tabNumName), 'caption', tabNumName,...
 			    'columnAdjust', 'XXXXX');
 
-			% Save the data and statistic info
-			propDataName = sprintf('%s propDataAndStat', organizeStruct(en).title);
-			save(fullfile(saveDir, propDataName), 'propDataAndStat');
+			% Save the Statistic info
+			statInfoName = sprintf('%s statInfo', organizeStruct(en).title);
+			save(fullfile(saveDir, statInfoName), 'statInfo');
 		end
 	end
 

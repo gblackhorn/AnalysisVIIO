@@ -83,55 +83,65 @@ function [barInfo, varargout] = barPlotOfStructData(structData, valField, groupF
     	groups = {structData.(groupField)};
     end
 
+
     % Get unique groups and their indices
     [uniqueGroups, ~, groupIdx] = unique(groups, 'stable');
     nGroups = numel(uniqueGroups);
 
     % Creat barInfo and calculate mean, std, and ste for plotting
-    barInfoDataFields = {'groupIDX', 'medianVal', 'group', 'groupData', 'meanVal', 'stdVal', 'seVal', 'nNum'};
+    barInfoDataFields = {'groupIDX', 'group', 'groupData', 'meanVal', 'medianVal', 'stdVal', 'steVal', 'nNum'};
     barInfo = empty_content_struct(barInfoDataFields,nGroups);
 
-    % Calculate means and standard deviations for each group
-    for i = 1:nGroups
-    	barInfo(i).groupIDX = i; 
-        barInfo(i).group = uniqueGroups(i); 
-    	barInfo(i).groupData = valData(groupIdx == i); 
-    	barInfo(i).meanVal = mean(barInfo(i).groupData, "omitnan"); 
-        barInfo(i).medianVal = median(barInfo(i).groupData, "omitnan"); 
-    	barInfo(i).stdVal = std(barInfo(i).groupData, "omitnan");
-    	barInfo(i).seVal = ste(barInfo(i).groupData, 'omitnan', true);
-    	barInfo(i).nNum = sum(~isnan(barInfo(i).groupData));
+    % Validate data and plot
+    if numel(valData) == numel(groups) % Values and groups must be paired to continue
+        % Calculate means and standard deviations for each group
+        for i = 1:nGroups
+            barInfo(i).groupIDX = i; 
+            barInfo(i).group = uniqueGroups(i); 
+            barInfo(i).groupData = valData(groupIdx == i); 
+            barInfo(i).meanVal = mean(barInfo(i).groupData, "omitnan"); 
+            barInfo(i).medianVal = median(barInfo(i).groupData, "omitnan"); 
+            barInfo(i).stdVal = std(barInfo(i).groupData, "omitnan");
+            barInfo(i).steVal = ste(barInfo(i).groupData, 'omitnan', true);
+            barInfo(i).nNum = sum(~isnan(barInfo(i).groupData));
+        end
+
+        % Create bar plot
+        if isempty(plotWhere)
+            f = figure;
+            plotWhere = gca;
+        else
+            axes(plotWhere)
+            f = gcf;
+        end
+
+        % x = [1:1:group_num];
+        x = [barInfo.groupIDX];
+        y = [barInfo.meanVal];
+        yError = [barInfo.steVal];
+
+        if isnumeric(x)
+            groupNames = arrayfun(@num2str, x, 'UniformOutput', false);
+        else
+            groupNames = x;
+        end
+
+        % Plot bars
+        barPlotInfo = barplot_with_errBar({barInfo.groupData},'barX',x,'plotWhere',plotWhere,...
+            'errBarVal',yError(:)','barNames',groupNames,'dataNumVal',[barInfo.nNum],...
+            'TickAngle', TickAngle, 'FontSize', FontSize, 'FontWeight', FontWeight);
+        % if ~isempty(xtickLabel)
+        %     xticklabels(xtickLabel)
+        % end
+        xticklabels(uniqueGroups)
+        ylabel(ylabelStr);
+        titleStr = replace(titleStr, '_', '-');
+        titleStr = replace(titleStr, ':', '-');
+        title(titleStr);
+
+    else % This means some values or groups are missing
+        error('Error. \n length of values (%d) does not equal to the length of groups (%d)',...
+        numel(valData), numel(groups));
     end
 
-    % Create bar plot
-    if isempty(plotWhere)
-        f = figure;
-        plotWhere = gca;
-    else
-        axes(plotWhere)
-        f = gcf;
-    end
-
-    % x = [1:1:group_num];
-    x = [barInfo.groupIDX];
-    y = [barInfo.meanVal];
-    yError = [barInfo.seVal];
-
-    if isnumeric(x)
-    	groupNames = arrayfun(@num2str, x, 'UniformOutput', false);
-    else
-    	groupNames = x;
-    end
-
-    % Plot bars
-    barPlotInfo = barplot_with_errBar({barInfo.groupData},'barX',x,'plotWhere',plotWhere,...
-        'errBarVal',yError(:)','barNames',groupNames,'dataNumVal',[barInfo.nNum],...
-        'TickAngle', TickAngle, 'FontSize', FontSize, 'FontWeight', FontWeight);
-    if ~isempty(xtickLabel)
-        xticklabels(xtickLabel)
-    end
-    ylabel(ylabelStr);
-    titleStr = replace(titleStr, '_', '-');
-    titleStr = replace(titleStr, ':', '-');
-    title(titleStr);
 end

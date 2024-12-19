@@ -44,5 +44,6 @@ function [TrialRoiList,varargout] = get_roiNum_from_eventProp(eventProp,varargin
     varargout{1} = trial_num; % trial number
     varargout{2} = dateNum; % date number = animal number
     varargout{3} = sum([TrialRoiList.roi_num]); % roi number
+    varargout{4} = numel(eventProp); % number of the entries
 end
 

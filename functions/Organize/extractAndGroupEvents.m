@@ -102,10 +102,11 @@ function [groupedEvent, varargout] = extractAndGroupEvents(caImgData, groupField
         if params.debugMode
             fprintf('[addGroupMetrics] group (%d/%d): %s\n', gn, numel(groupedEvent), groupName);
         end
-        [TrialRoiList, recNum, animalNum, roiNum] = get_roiNum_from_eventProp(groupedEvent(gn).event_info);
+        [TrialRoiList, recNum, animalNum, roiNum, eventNum] = get_roiNum_from_eventProp(groupedEvent(gn).event_info);
         groupedEvent(gn).animalNum = animalNum;
         groupedEvent(gn).recNum = recNum;
         groupedEvent(gn).roiNum = roiNum;
+        groupedEvent(gn).eventNum = eventNum;
         groupedEvent(gn).TrialRoiList = TrialRoiList;
 
         if strcmp(params.entry, 'roi') && ~contains(groupName, 'spon') && ~contains(groupName, 'varied')

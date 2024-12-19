@@ -50,9 +50,9 @@ end
 %% ==========
 % Extract properties of events, group them, and analyze their properties
 % Settings for plots
-saveFig = false; % true/false
+saveFig = true; % true/false
 saveDir = fullfile(projectSettings.resultsFolder,'EventProp');
-props = {'FWHM','peak_delta_norm_hpstd','rise_duration', 'peak_delay'}; % Properties to by analyzed
+props = {'FWHM','peak_delta_norm_hpstd','rise_duration'}; % Properties to by analyzed
 dataDist = 'posSkewed'; % Setup data distribution for GLMM fitting
 
 
@@ -92,6 +92,7 @@ for m = 1:numel(sponSepTF)
 	end
 
 	for n = 1:numel(groupFields)
+		close all
 		% Check if 'type' is used for grouping
 		typeTF = strcmp(groupFields{n}, 'type');
 		if isempty(find(typeTF, 1))

@@ -16,8 +16,10 @@ function [barInfo,varargout] = barplot_with_errBar(barData,varargin)
     
     % Optional parameters with default values
     addParameter(p, 'errBarVal', [], @isnumeric);
+    addParameter(p, 'plotScatter', true, @islogical); % Enable/disable scatter plotting
     addParameter(p, 'dataNumVal', [], @isnumeric);
     addParameter(p, 'barNamePrefix', 'Category', @ischar);
+    addParameter(p, 'yTickInterval', [], @isnumeric); % Default is empty (automatic)
     addParameter(p, 'unit_width', 0.4, @isnumeric);
     addParameter(p, 'unit_height', 0.4, @isnumeric);
     addParameter(p, 'column_lim', 1, @isnumeric);
@@ -70,14 +72,17 @@ function [barInfo,varargout] = barplot_with_errBar(barData,varargin)
     hEB = errorbar(gca, params.barX, barVal, errBarVal, 'LineStyle', 'None');
     set(hEB, 'Color', 'k', 'LineWidth', params.errBarLineWidth, 'CapSize', params.errBarCapSize);
 
-    % Plot scatter points with jitter
-    plotScatterWithJitter(params.barData, params.barX, barNum, jitterAmount);
+    % Plot scatter points with jitter if enabled
+    if params.plotScatter
+        plotScatterWithJitter(params.barData, params.barX, barNum, jitterAmount);
+    end
 
     % Add data number to the bottom of each bar
     addDataNumber(params.barX, dataNumVal);
 
     % Modify the style of plot
-    stylePlot(gca, params.TickAngle, params.FontSize, params.FontWeight, params.barNames, params.barX);
+    stylePlot(gca, params.TickAngle, params.FontSize, params.FontWeight, params.barNames, params.barX, ...
+              'yTickInterval', params.yTickInterval);
 
     % Save the calculated data (mean for bar and ste for error bar) to a structure
     barInfo = struct('barNames', params.barNames, 'barVal', num2cell(barVal), 'errBarVal', num2cell(errBarVal));
@@ -106,12 +111,12 @@ function plotScatterWithJitter(barData, barX, barNum, jitterAmount)
     if isnumeric(barData) && ismatrix(barData)
         for cn = 1:barNum
             jitterX = barX(cn) + (rand(size(barData(:, cn))) - 0.5) * jitterAmount;
-            scatter(jitterX, barData(:, cn), 18, 'k', 'filled');
+            scatter(jitterX, barData(:, cn), 18, 'k');
         end
     elseif iscell(barData)
         for cn = 1:barNum
             jitterX = barX(cn) + (rand(length(barData{cn}), 1) - 0.5) * jitterAmount;
-            scatter(jitterX, barData{cn}, 18, 'k', 'filled');
+            scatter(jitterX, barData{cn}, 18, 'k');
         end
     end
 end
@@ -124,10 +129,11 @@ function addDataNumber(barX, dataNumVal)
     text(barX, nNumY, nNumStr, 'vert', 'bottom', 'horiz', 'center', 'Color', 'white');
 end
 
+
 function stylePlot(gcaHandle, TickAngle, FontSize, FontWeight, barNames, barX, varargin)
     % Parse optional interval parameter
     p = inputParser;
-    addOptional(p, 'yTickInterval', 2, @isnumeric); % Default interval is 2
+    addOptional(p, 'yTickInterval', [], @isnumeric); % Default is automatic when empty
     parse(p, varargin{:});
     yTickInterval = p.Results.yTickInterval;
 
@@ -140,13 +146,19 @@ function stylePlot(gcaHandle, TickAngle, FontSize, FontWeight, barNames, barX, v
     set(gcaHandle, 'XTick', barX);
     set(gcaHandle, 'xticklabel', barNames);
 
-    % Customize y-axis ticks with user-defined or default interval
-    yLimits = ylim(gcaHandle);
-    yTicks = floor(yLimits(1)/yTickInterval)*yTickInterval:yTickInterval:ceil(yLimits(2)/yTickInterval)*yTickInterval;
-    set(gcaHandle, 'YTick', yTicks);
-    set(gcaHandle, 'YTickLabel', arrayfun(@num2str, yTicks, 'UniformOutput', false));
+    % Modify y-axis ticks
+    if isempty(yTickInterval)
+        % Let MATLAB choose y-tick intervals automatically
+        set(gcaHandle, 'YTickMode', 'auto');
+        set(gcaHandle, 'YTickLabelMode', 'auto');
+    else
+        % Customize y-axis ticks with user-defined interval
+        yLimits = ylim(gcaHandle);
+        yTicks = floor(yLimits(1)/yTickInterval)*yTickInterval : yTickInterval : ceil(yLimits(2)/yTickInterval)*yTickInterval;
+        set(gcaHandle, 'YTick', yTicks);
+        set(gcaHandle, 'YTickLabel', arrayfun(@num2str, yTicks, 'UniformOutput', false));
+    end
 end
-
 
 
 

@@ -29,8 +29,8 @@ function [fNum, varargout] = nNumberTab(structDataForPlot,entryType,varargin)
     fig_position = [0.1 0.1 0.3 0.2]; % left, bottom, width, height
     ax = axes(fNum, 'Position', [0.1, 0.1, 0.8, 0.8], 'Units', 'normalized', 'Visible', 'on'); % Axes turned off after positioning
 
-    nNumStr = sprintf('n number = the number of %s', entryType);
-    title(nNumStr);
+    % nNumStr = sprintf('n number = the number of %s', entryType);
+    % title(nNumStr);
 
     set(fNum, 'Units', 'normalized', 'Position', fig_position)
     uit_pos = get(ax,'Position');
