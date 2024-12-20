@@ -1,20 +1,17 @@
-function [varargout] = plotEventProp(eventPropStruct, propNames, varargin)
+function [stat] = plotEventProp(eventPropStruct, propNames, varargin)
     %PLOTEVENTPROP creates bar, violin, and cumulative distribution plot showing the difference
     % between/among various groups of events
-    % Input: 
-    %    - structure array including one or more event_info structures {event_info1, event_info2,...}
+    % Input:
+    %    - eventPropStruct: A structure array where each element represents a group. Fields:
+    %        * group: Name of the group.
+    %        * event_info: Structure array containing data for events in the group, used for plotting and analysis.
+    %    - propNames: Cell array of property names to be analyzed and plotted.
     % Output:
-    %    - event frequency histogram
-    %    - event interval variance histogram
-    %    - event rise_time bar
-    %    - event peak amplitude bar
-    %    - event rise_time/peak scatter and correlation
-    %    - event peak-slope scatter and correlation
-    %    - event slope bar
+    %    - stat: Structure containing the results of the plots and analyses, including mixed model results and ECDF data.
 
     % Initialize input parser
     p = inputParser;
-    addRequired(p, 'eventPropStruct', @(x) isstruct(x) || iscell(x));
+    addRequired(p, 'eventPropStruct', @(x) isstruct(x));
     addRequired(p, 'propNames', @(x) iscell(x) && all(cellfun(@ischar, x)));
     addParameter(p, 'fnamePrefix', '', @(x) ischar(x) || isstring(x));
     addParameter(p, 'groupFieldName', 'groupTag', @(x) ischar(x) || isstring(x));
@@ -25,7 +22,7 @@ function [varargout] = plotEventProp(eventPropStruct, propNames, varargin)
     addParameter(p, 'mmLink', 'log', @(x) any(validatestring(x, {'log', 'identity', 'inverse'})));
     addParameter(p, 'saveFig', false, @(x) islogical(x));
     addParameter(p, 'saveDir', '', @(x) ischar(x) || isstring(x));
-    % addParameter(p, 'GUIsave', true, @(x) islogical(x));
+    addParameter(p, 'plotScatter', false, @(x) islogical(x));
     addParameter(p, 'colorGroup', {'#3FF5E6', '#F55E58', '#F5A427', '#4CA9F5', '#33F577',...
         '#408F87', '#8F4F7A', '#798F7D', '#8F7832', '#28398F', '#000000'}, @(x) iscell(x) && all(cellfun(@ischar, x)));
     addParameter(p, 'CDlineWidth', 2, @(x) isnumeric(x) && isscalar(x) && x > 0);
@@ -55,9 +52,9 @@ function [varargout] = plotEventProp(eventPropStruct, propNames, varargin)
 
     %% Loop through properties and plot
     % Concatenate the data from entries in eventPropStruct
-    dataStruct = cat(1, [eventPropStruct.event_info]); % This can be used for barPlot directly
+    dataStruct = cat(1, [eventPropStruct.event_info]); % Concatenates all `event_info` structures from `eventPropStruct` into a single array for easier processing in plots and analyses
     dataGroupLabel = {dataStruct.(pars.groupFieldName)}; % Extract the group labels for every event
-    stat.groups = {[eventPropStruct.group]}; % Record the group names for statistical comparison
+    stat.groups = {[eventPropStruct.group]}; % Record the group names for statistical comparison; the `group` field contains the names of different experimental or analytical groups used in plots and comparisons
 
     for i = 1:propNum
         for j = 1:numel(plotTypes)
@@ -67,32 +64,17 @@ function [varargout] = plotEventProp(eventPropStruct, propNames, varargin)
             if strcmpi(plotTypes{j}, 'bars')
                 % Create a bar plot
                 barInfo = barPlotOfStructData(dataStruct, propNames{i}, pars.groupFieldName,...
-                    'plotWhere', ax, 'titleStr', propNames{i});
+                    'plotWhere', ax, 'titleStr', propNames{i}, 'plotScatter', pars.plotScatter);
 
-                % Run Gerneralized Linear Mixed Model
+                % Run Generalized Linear Mixed Model
                 [~, ~, ~, ~, ~, stat.mixedModel.(propNames{i})] =...
                     mixed_model_analysis(dataStruct, propNames{i}, pars.mmGroup, pars.mmHierarchicalVars,...
                     'modelType', pars.mmModel,'distribution', pars.mmDistribution,'link', pars.mmLink,...
                     'groupVarType', 'categorical');
 
-                % Save statatistic info: summary stat, GLMM results
+                % Save statistical info: summary stat, GLMM results
                 if pars.saveFig
-                    % Create and save a latex table file for the (generalized) linear mixed model results
-                    texFilenameLMM = sprintf('%s %s LMMmodelCompTab.tex',pars.fnamePrefix, propNames{i});
-                    captionStrLMM = sprintf('%s %s %s', pars.fnamePrefix, propNames{i}, stat.mixedModel.(propNames{i}).modelInfoStr);
-                    tableToLatex(stat.mixedModel.(propNames{i}).chiLRT, 'saveToFile',true,...
-                        'filename', fullfile(pars.saveDir,texFilenameLMM), 'caption', captionStrLMM,...
-                        'columnAdjust', 'cXccccccc');
-
-                    % Create and save a latex table file for the summary stat
-                    summaryStat = barInfo; % Assign the barInfo to a new var before modificaiton
-                    fieldsToRemove = {'groupIDX', 'groupData', 'nNum'}; % Fields to be removed
-                    summaryStat = rmfield(summaryStat, fieldsToRemove); % Remove the unwanted fields
-                    summaryStatTab = struct2table(summaryStat); % Convert the structure to a table
-                    texFilenameSummaryStat = sprintf('%s %s meanSemTab.tex', pars.fnamePrefix, propNames{i});
-                    tableToLatex(summaryStatTab, 'saveToFile',true,'filename',...
-                        fullfile(pars.saveDir,texFilenameSummaryStat), 'caption', texFilenameSummaryStat,...
-                        'columnAdjust', 'XXXXX');
+                    createLatexTables(stat.mixedModel.(propNames{i}), barInfo, propNames{i}, pars);
                 end
 
             elseif strcmpi(plotTypes{j}, 'violins')
@@ -133,7 +115,19 @@ function [varargout] = plotEventProp(eventPropStruct, propNames, varargin)
         end
     end
 
-    varargout{1} = stat;
 end
 
+function createLatexTables(mixedModelStat, barInfo, propName, pars)
+    % Create and save a latex table file for the (generalized) linear mixed model results
+    texFilenameLMM = sprintf('%s %s LMMmodelCompTab.tex', pars.fnamePrefix, propName);
+    captionStrLMM = sprintf('%s %s %s', pars.fnamePrefix, propName, mixedModelStat.modelInfoStr);
+    tableToLatex(mixedModelStat.chiLRT, 'saveToFile', true, 'filename', fullfile(pars.saveDir, texFilenameLMM), 'caption', captionStrLMM, 'columnAdjust', 'cXccccccc');
 
+    % Create and save a latex table file for the summary stat
+    summaryStat = barInfo; % Assign the barInfo to a new var before modification
+    fieldsToRemove = {'groupIDX', 'groupData', 'nNum'}; % Fields to be removed
+    summaryStat = rmfield(summaryStat, fieldsToRemove); % Remove the unwanted fields
+    summaryStatTab = struct2table(summaryStat); % Convert the structure to a table
+    texFilenameSummaryStat = sprintf('%s %s meanSemTab.tex', pars.fnamePrefix, propName);
+    tableToLatex(summaryStatTab, 'saveToFile', true, 'filename', fullfile(pars.saveDir, texFilenameSummaryStat), 'caption', texFilenameSummaryStat, 'columnAdjust', 'XXXXX');
+end

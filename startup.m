@@ -54,6 +54,11 @@ else
     disp('VIIOdataFig1Example.mat not found.');
 end
 
+% Step 5: Add the settings for ROI filter
+% ROIs in the recordings applied with various stimulations were filtered
+% depend on how they react to the stimulation.
+projectSettings.ROIfilter.StimTags = {'N-O-5s','AP-0.1s','N-O-5s AP-0.1s'}; % 
+projectSettings.ROIfilter.StimEffects = {[0 nan nan nan], [nan nan nan nan], [0 nan nan nan]}; % [ex in rb exApNO]. ex: excitation. in: inhibition. rb: rebound. exApNO: exitatory effect of AP during N-O
 
 
 disp('Project startup complete.');

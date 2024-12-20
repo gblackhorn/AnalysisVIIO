@@ -49,6 +49,7 @@ function [barInfo, varargout] = barPlotOfStructData(structData, valField, groupF
 
     % Add optional parameters to the parser
     addParameter(p, 'plotWhere', []);
+    addParameter(p, 'plotScatter', true, @islogical);
     addParameter(p, 'titleStr', 'Bar plot', @ischar);
     addParameter(p, 'xtickLabel', {}, @iscell);
     addParameter(p, 'TickAngle', 0, @isnumeric);
@@ -66,6 +67,7 @@ function [barInfo, varargout] = barPlotOfStructData(structData, valField, groupF
     valField = p.Results.valField;
     groupField = p.Results.groupField;
     plotWhere = p.Results.plotWhere;
+    plotScatter = p.Results.plotScatter;
     titleStr = p.Results.titleStr;
     xtickLabel = p.Results.xtickLabel;
     TickAngle = p.Results.TickAngle;
@@ -129,7 +131,8 @@ function [barInfo, varargout] = barPlotOfStructData(structData, valField, groupF
         % Plot bars
         barPlotInfo = barplot_with_errBar({barInfo.groupData},'barX',x,'plotWhere',plotWhere,...
             'errBarVal',yError(:)','barNames',groupNames,'dataNumVal',[barInfo.nNum],...
-            'TickAngle', TickAngle, 'FontSize', FontSize, 'FontWeight', FontWeight);
+            'TickAngle', TickAngle, 'FontSize', FontSize, 'FontWeight', FontWeight,...
+            'plotScatter', plotScatter);
         % if ~isempty(xtickLabel)
         %     xticklabels(xtickLabel)
         % end

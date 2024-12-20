@@ -109,27 +109,28 @@ function [groupedEvent, varargout] = extractAndGroupEvents(caImgData, groupField
         groupedEvent(gn).eventNum = eventNum;
         groupedEvent(gn).TrialRoiList = TrialRoiList;
 
-        if strcmp(params.entry, 'roi') && ~contains(groupName, 'spon') && ~contains(groupName, 'varied')
-            [groupedEvent(gn).eventPb, groupedEvent(gn).eventPbList] = ...
-                analyze_roi_event_possibility(groupedEvent(gn).event_info, 'debugMode', params.debugMode);
-        end
 
         % Add fovCount if entry is 'roi'
         if strcmp(params.entry, 'roi')
             EventInfo = groupedEvent(gn).event_info;
             fovIDs = {EventInfo.fovID};
-            roi_num = numel(fovIDs);
-            fovIDs_unique = unique(fovIDs);
-            fovIDs_unique_num = numel(fovIDs_unique);
+            roiNum = numel(fovIDs);
+            fovIDsUnique = unique(fovIDs);
+            fovIDsUniqueNum = numel(fovIDsUnique);
 
             % Initialize structure for fov counts
-            fovID_count_struct = empty_content_struct({'fovID', 'numROI', 'perc'}, fovIDs_unique_num);
-            [fovID_count_struct.fovID] = fovIDs_unique{:};
-            for fn = 1:fovIDs_unique_num
-                fovID_count_struct(fn).numROI = numel(find(contains(fovIDs, fovID_count_struct(fn).fovID)));
-                fovID_count_struct(fn).perc = fovID_count_struct(fn).numROI / roi_num;
+            fovIDcountStruct = empty_content_struct({'fovID', 'numROI', 'perc'}, fovIDsUniqueNum);
+            [fovIDcountStruct.fovID] = fovIDsUnique{:};
+            for fn = 1:fovIDsUniqueNum
+                fovIDcountStruct(fn).numROI = numel(find(contains(fovIDs, fovIDcountStruct(fn).fovID)));
+                fovIDcountStruct(fn).perc = fovIDcountStruct(fn).numROI / roiNum;
             end
-            groupedEvent(gn).fovCount = fovID_count_struct;
+            groupedEvent(gn).fovCount = fovIDcountStruct;
+
+            % if ~contains(groupName, 'spon') && ~contains(groupName, 'varied')
+            %     [groupedEvent(gn).eventPb, groupedEvent(gn).eventPbList] = ...
+            %         analyze_roi_event_possibility(groupedEvent(gn).event_info, 'debugMode', params.debugMode);
+            % end
         end
     end
 

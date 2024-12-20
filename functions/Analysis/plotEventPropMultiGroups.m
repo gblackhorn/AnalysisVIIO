@@ -1,127 +1,115 @@
-function [varargout] = plotEventPropMultiGroups(groupedEventProp,props,organizeStruct,varargin)
-	% Plot the event properties for multiple pairs of groups
+function [varargout] = plotEventPropMultiGroups(groupedEventProp, props, organizeStruct, varargin)
+    % PLOTEVENTPROPMULTIGROUPS Plots and analyzes event properties for multiple pairs of groups.
+    %
+    % Inputs:
+    %    - groupedEventProp: A structure array output by `extractAndGroupEvents`. Fields include:
+    %        * group: String name of the group (e.g., experimental condition).
+    %        * event_info: Structure array containing event data for the group.
+    %        * animalNum, recNum, roiNum: Numeric fields indicating the number of animals,
+    %          recordings, and regions of interest (ROIs), respectively, within each group.
+    %    - props: Cell array of strings specifying the names of event properties to analyze.
+    %      These correspond to field names within `groupedEventProp(n).event_info`.
+    %    - organizeStruct: A structure array containing fields for configuring the analysis:
+    %        * title: String used for figure and file naming.
+    %        * keepGroups: Cell array of strings. Entries in `groupedEventProp(n).group` that match
+    %          any of these strings will be retained for analysis. Recommended to keep two groups
+    %          for GLMM analysis.
+    %        * mmFixCat: String specifying the category used by GLMM for fixed effects in the model.
+    %
+    % Outputs:
+    %    - saveDir: Directory where figures and tables are saved (if applicable).
+    %    - organizeStruct: Updated `organizeStruct` with added data from the analysis.
 
-	% groupedEventProp: Struct var output by getAndGroup_eventsProp
-	% props: Cell var. Names of event properties. They are the field names of groupedEventProp(n).event_info
+    % Default parameters
+    defaultColorGroup = {'#3FF5E6', '#F55E58', '#F5A427', '#4CA9F5', '#33F577',...
+                         '#408F87', '#8F4F7A', '#798F7D', '#8F7832', '#28398F', '#000000'};
+    tableFormatColumnAdjust = 'XXXXX'; % Define table column format string for maintainability.
 
-	% organizeStruct: Struct var containing fields {'title', 'keepGroups', 'mmFixCat'}. Function
-	% 	uses the content in each entry to generate plots for event propterties.
-	%	- 'title': Char var. Used for figure and file names
-	%	- 'keepGroups': Cell var. If groupedEventProp(n).group contains any of the chars in keepGroups,  
-	%		the nth entry will be kept. GLMM analysis is suitable for 2 groups. Try to keep only two entries
-	%	- 'mmFixCat': Char var. Category used by GLMM for fixEffect in the model
+    % Input parser
+    p = inputParser;
 
-	% Defaults
-	plot_combined_data = false;
-	stat = true;
-	defaultColorGroup = {'#3FF5E6', '#F55E58', '#F5A427', '#4CA9F5', '#33F577',...
-	    '#408F87', '#8F4F7A', '#798F7D', '#8F7832', '#28398F', '#000000'};
+    % Required inputs
+    addRequired(p, 'groupedEventProp', @(x) isstruct(x) && ~isempty(x)); % Ensure non-empty structure.
+    addRequired(p, 'props', @(x) iscell(x) && ~isempty(x)); % Ensure non-empty cell array.
+    addRequired(p, 'organizeStruct', @(x) isstruct(x) && ~isempty(x)); % Ensure non-empty structure.
 
+    % Optional parameters with default values
+    addParameter(p, 'entryType', 'event', @ischar); % 'event' or 'roi', defining the type of data.
+    addParameter(p, 'mmModel', 'GLMM', @ischar); % Mixed model type (e.g., GLMM).
+    addParameter(p, 'mmDistribution', 'gamma', @ischar); % Distribution type for GLMM.
+    addParameter(p, 'mmLink', 'log', @ischar); % Link function for GLMM.
+    addParameter(p, 'mmHierarchicalVars', {'trialName', 'roiName'}, @iscell); % Hierarchical variables for GLMM.
+    addParameter(p, 'saveFig', false, @islogical); % Whether to save figures.
+    addParameter(p, 'saveDir', '', @ischar); % Directory for saving outputs.
+    addParameter(p, 'debugMode', true, @islogical); % Enable debug mode for verbose output.
 
-	% Input parser
-	p = inputParser;
+    % Parse inputs
+    parse(p, groupedEventProp, props, organizeStruct, varargin{:});
+    pars = p.Results;
 
-	% Required input
-	addRequired(p, 'groupedEventProp', @isstruct);
-	addRequired(p, 'props', @iscell); 
-	addRequired(p, 'organizeStruct', @isstruct); 
+    % Number of entries in organizeStruct
+    entryNum = numel(pars.organizeStruct);
 
-	% Optional parameters with default values
-	addParameter(p, 'entryType', 'event', @ischar); % 'event'/'roi'. The type of entries in groupedEventProp(n).event_info
-	addParameter(p, 'mmModel', 'GLMM', @ischar); 
-	addParameter(p, 'mmDistribution', 'gamma', @ischar); 
-	addParameter(p, 'mmLink', 'log', @ischar); 
-	addParameter(p, 'mmHierarchicalVars', {'trialName', 'roiName'}, @iscell);
-	addParameter(p, 'saveFig', false, @islogical); 
-	addParameter(p, 'saveDir', '', @ischar); 
-	addParameter(p, 'debugMode', true, @islogical); 
+    % Loop through each entry in organizeStruct
+    % This loop processes each group specified in organizeStruct:
+    % 1. Filters `groupedEventProp` based on the `keepGroups` field to retain relevant groups for comparison.
+    % 2. Assigns the filtered data back to `organizeStruct`.
+    % 3. Calls `plotEventProp` to generate statistical analyses and plots (bar plots, violin plots, ECDFs, etc.).
+    % 4. Creates and saves figures, tables, and statistical summaries (if saveFig is true).
+    % 5. Updates `organizeStruct` with the processed results and data for each group.
+    for en = 1:entryNum
+        if pars.debugMode
+            fprintf('Processing Group %d: %s\n', en, pars.organizeStruct(en).title);
+        end
 
-	% Parse inputs
-	parse(p, groupedEventProp, props, organizeStruct, varargin{:});
+        % Assign color group, falling back to default if not provided
+        if ~isfield(pars.organizeStruct, 'colorGroup') || isempty(pars.organizeStruct(en).colorGroup)
+            colorGroup = defaultColorGroup;
+        else
+            colorGroup = pars.organizeStruct(en).colorGroup;
+        end
 
-	% Assign parsed values to variables
-	groupedEventProp = p.Results.groupedEventProp;
-	props = p.Results.props;
-	organizeStruct = p.Results.organizeStruct;
-	entryType = p.Results.entryType;
-	mmModel = p.Results.mmModel;
-	mmDistribution = p.Results.mmDistribution;
-	mmLink = p.Results.mmLink;
-	mmHierarchicalVars = p.Results.mmHierarchicalVars;
-	saveFig = p.Results.saveFig;
-	saveDir = p.Results.saveDir;
-	debugMode = p.Results.debugMode;
+        % Filter groupedEventProp based on keepGroups
+        % `filter_entries_in_structure` uses `pars.organizeStruct(en).keepGroups` as keywords to filter and
+        % retain specific groups from `pars.groupedEventProp`. The retained groups are then used for comparison and plotting.
+        if ~isfield(pars.organizeStruct(en), 'keepGroups') || isempty(pars.organizeStruct(en).keepGroups)
+            error('Missing or empty keepGroups field in organizeStruct for entry %d.', en);
+        end
+        groupedEventPropFiltered = filter_entries_in_structure(pars.groupedEventProp, 'group',...
+            'tags_keep', pars.organizeStruct(en).keepGroups);
 
+        % Store filtered data in organizeStruct
+        pars.organizeStruct(en).data = groupedEventPropFiltered;
 
-	% Get the entry number of 'organizeStruct'
-	entryNum = numel(organizeStruct);
+        % Analyze and plot event properties
+        % `statInfo` contains the results of statistical analyses and plots generated by `plotEventProp`,
+        % including bar plots, violin plots, ECDFs, and GLMM model outputs.
+        statInfo = plotEventProp(pars.organizeStruct(en).data, pars.props, 'fnamePrefix', pars.organizeStruct(en).title,...
+            'mmModel', pars.mmModel, 'mmGroup', pars.organizeStruct(en).mmFixCat,...
+            'mmHierarchicalVars', pars.mmHierarchicalVars, 'mmDistribution', pars.mmDistribution, 'mmLink', pars.mmLink,...
+            'saveFig', pars.saveFig, 'saveDir', pars.saveDir);
 
-	% Loop through 'organizeStruct'. Use the parameters in it to plot and analyze data
-	for en = 1:entryNum
-		if debugMode
-			fprintf('Group %d: %s\n', en, organizeStruct(en).title);
-			if en == 12
-				pause
-			end
-		end
+        % Create a UI table displaying n numbers
+        fNumName = [pars.organizeStruct(en).title, ' nNumInfo'];
+        [fNum, tabNum] = nNumberTab(pars.organizeStruct(en).data, pars.entryType, 'figName', fNumName);
 
-		%
-		if ~isfield(organizeStruct, 'colorGroup') || isempty(organizeStruct(en).colorGroup)
-			colorGroup = defaultColorGroup;
-		else
-			colorGroup = organizeStruct(en).colorGroup;
-		end
+        % Save outputs if saveFig is enabled
+        if pars.saveFig
+            % Save figure
+            savePlot(fNum, 'guiSave', 'off', 'save_dir', pars.saveDir, 'fname', fNumName);
 
-		% Filter the entries of 'groupedEventProp' using the information in 'organizeStruct(en).keepGroups'
-		[groupedEventPropFiltered] = filter_entries_in_structure(groupedEventProp,'group',...
-			'tags_keep',organizeStruct(en).keepGroups);
+            % Save table in LaTeX format
+            tabNumName = sprintf('%s nNumInfo.tex', pars.organizeStruct(en).title);
+            tableToLatex(tabNum, 'saveToFile', true, 'filename',...
+                fullfile(pars.saveDir, tabNumName), 'caption', tabNumName, 'columnAdjust', tableFormatColumnAdjust);
 
-		organizeStruct(en).data = groupedEventPropFiltered;
+            % Save statistical information
+            statInfoName = sprintf('%s statInfo', pars.organizeStruct(en).title);
+            save(fullfile(pars.saveDir, statInfoName), 'statInfo');
+        end
+    end
 
-		% Analyze and plot event properties
-		[statInfo] = plotEventProp(organizeStruct(en).data, props, 'fnamePrefix', organizeStruct(en).title,...
-			'mmModel', mmModel, 'mmGroup', organizeStruct(en).mmFixCat,...
-			'mmHierarchicalVars', mmHierarchicalVars, 'mmDistribution', mmDistribution, 'mmLink', mmLink,...
-			'saveFig', saveFig, 'saveDir', saveDir);
-
-		% if en == 1
-		% 	GUIsave = true; % Choose locations to save figures
-		% else
-		% 	GUIsave = false; % Use the locations chosen before to save figures
-		% end
-
-		% [saveDir, propDataAndStat] = plot_event_info(organizeStruct(en).data,'entryType',entryType,...
-		% 	'plot_combined_data', plot_combined_data, 'parNames', props, 'stat', stat,...
-		% 	'mmModel', mmModel, 'mmGroup', organizeStruct(en).mmFixCat,...
-		% 	'mmHierarchicalVars', mmHierarchicalVars, 'mmDistribution', mmDistribution, 'mmLink', mmLink,...
-		% 	'colorGroup', colorGroup, 'fname_preffix', organizeStruct(en).title,...
-		% 	'save_fig', saveFig, 'save_dir', saveDir, 'GUIsave', GUIsave);
-
-		% organizeStruct(en).plotInfo = propDataAndStat;
-
-		% Create a UI table displaying the n numberss
-		fNumName = [organizeStruct(en).title,' nNumInfo'];
-		[fNum, tabNum] = nNumberTab(organizeStruct(en).data, entryType, 'figName', fNumName);
-
-		% Save data
-		if saveFig
-			% Save the fNum
-			savePlot(fNum,'guiSave', 'off', 'save_dir', saveDir,...
-				'fname', fNumName);
-
-			% Save the fNum tab in latex format
-			tabNumName = sprintf('%s nNumInfo.tex', organizeStruct(en).title);
-			tableToLatex(tabNum, 'saveToFile',true,'filename',...
-			    fullfile(saveDir,tabNumName), 'caption', tabNumName,...
-			    'columnAdjust', 'XXXXX');
-
-			% Save the Statistic info
-			statInfoName = sprintf('%s statInfo', organizeStruct(en).title);
-			save(fullfile(saveDir, statInfoName), 'statInfo');
-		end
-	end
-
-	varargout{1} = saveDir;
-	varargout{2} = organizeStruct;
+    % Outputs
+    varargout{1} = pars.saveDir;
+    varargout{2} = pars.organizeStruct;
 end
-
