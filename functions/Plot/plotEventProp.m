@@ -81,6 +81,10 @@ function [stat] = plotEventProp(eventPropStruct, propNames, varargin)
                 % Collect data for the specified property
                 dataArray = [dataStruct.(propNames{i})];
 
+                % Find the empty entries in structData.(valField) and remove the structData.(groupField) at the same locations
+                emptyValPositions = find(cellfun(@isempty, {dataStruct.(propNames{i})})); % Find positions of []
+                dataGroupLabel(emptyValPositions) = [];
+
                 % Create a violin plot
                 violinplot(dataArray, dataGroupLabel);
                 title(strrep(propNames{i}, '_', '-'));

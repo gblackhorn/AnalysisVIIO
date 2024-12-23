@@ -1,6 +1,6 @@
 % VIIO figure creating script
 
-figFolder = projectSettings.projectFolder;
+figFolder = projCfg.projectFolder;
 
 %% ==========
 % Example showing the difference between raw traces and CNMFe-denoised traces
@@ -9,14 +9,14 @@ close all
 saveFig = true; % true/false
 
 % Setup the folder path to save plots
-saveDir = fullfile(projectSettings.resultsFolder,'CaImgExample_noStim');
+saveDir = fullfile(projCfg.resultsFolder,'CaImgExample_noStim');
 
 % Setup the path of the CSV file containing raw traces
-csvTraceFilePath = fullfile(projectSettings.dataFolder  , '2021-03-29-14-19-43_VIIOdataFig1Example.csv');
+csvTraceFilePath = fullfile(projCfg.dataFolder  , '2021-03-29-14-19-43_VIIOdataFig1Example.csv');
 
 % Plot ROIs' traces in the example recording 
-csvTraceFilePath = fullfile(projectSettings.dataFolder  , '2021-03-29-14-19-43_VIIOdataFig1Example.csv');
-[figHandles, processedData] = createCaImgExampleFig(projectSettings.VIIOdataNoStimExample,...
+csvTraceFilePath = fullfile(projCfg.dataFolder  , '2021-03-29-14-19-43_VIIOdataFig1Example.csv');
+[figHandles, processedData] = createCaImgExampleFig(projCfg.VIIOdataNoStimExample,...
 	csvTraceFilePath, saveDir, saveFig);
 
 
@@ -26,7 +26,7 @@ csvTraceFilePath = fullfile(projectSettings.dataFolder  , '2021-03-29-14-19-43_V
 % Fig2 B
 close all
 saveFig = true; % true/false
-saveDir = fullfile(projectSettings.resultsFolder,'SponEventExample');
+saveDir = fullfile(projCfg.resultsFolder,'SponEventExample');
 subNucleiTypes = {'DAO','PO'}; % Separate ROIs using the subnuclei tag.
 
 % Create a cell to store the trace info
@@ -35,7 +35,7 @@ traceInfo = cell(1,numel(subNucleiTypes));
 % Loop through the subNucleiTypes
 for i = 1:numel({'DAO','PO'})
 	% Plot the mean trace
-	[~,traceInfo{i}] = AlignedCatTracesSinglePlot(projectSettings.VIIOdata,'','spon',...
+	[~,traceInfo{i}] = AlignedCatTracesSinglePlot(projCfg.VIIOdata,'','spon',...
 		'normMethod','highpassStd','subNucleiType',subNucleiTypes{i},...
 		'showRawtraces',false,'showMedian',false,'medianProp','FWHM',...
 		'plot_combined_data',true,'shadeType','ste','y_range',[-10 20]);
@@ -51,19 +51,19 @@ end
 % Extract properties of events, group and analyze them
 % Settings for plots
 saveFig = true; % true/false
-saveDir = fullfile(projectSettings.resultsFolder,'EventProp');
-props = {'FWHM','peak_delta_norm_hpstd','rise_duration'}; % Properties to by analyzed
+saveDir = fullfile(projCfg.resultsFolder,'EventProp');
+eventPropNames = {'FWHM','peak_delta_norm_hpstd','rise_duration'}; % Properties to by analyzed
 dataDist = 'posSkewed'; % Setup data distribution for GLMM fitting
 
 
 % Setup the filters to exclude the ROIs showing the excitatory response to optogenetic activation of N-O terminals
 filterROIs = true; % true/false. If true, screen ROIs using the settings below
-StimTags = {'N-O-5s','AP-0.1s','N-O-5s AP-0.1s'}; % {'og-5s','ap-0.1s','og-5s ap-0.1s'}. compare the alignedData.stim_name with these strings and decide what filter to use
-StimEffects = {[0 nan nan nan], [nan nan nan nan], [0 nan nan nan]}; % [ex in rb exApOg]. ex: excitation. in: inhibition. rb: rebound. exApOg: exitatory effect of AP during OG
+% StimTags = {'N-O-5s','AP-0.1s','N-O-5s AP-0.1s'}; % {'og-5s','ap-0.1s','og-5s ap-0.1s'}. compare the alignedData.stim_name with these strings and decide what filter to use
+% StimEffects = {[0 nan nan nan], [nan nan nan nan], [0 nan nan nan]}; % [ex in rb exApOg]. ex: excitation. in: inhibition. rb: rebound. exApOg: exitatory effect of AP during OG
 
 % Create a dataset only containing the ROIs tagged with cluster info to compare "cluster" and "single" evnets
 mustHaveField = 'type'; % Field 'type' contains the cluster information (cluster/sync vs. single/async)
-[VIIOdataSynchInfo] = validateAlignedDataStructForEventAnalysis(projectSettings.VIIOdata, mustHaveField);
+[VIIOdataSynchInfo] = validateAlignedDataStructForEventAnalysis(projCfg.VIIOdata, mustHaveField);
 
 % Use two ways to group spon events: Separte them using the applied stimulation or not
 sponSepTF = [true, false];
@@ -96,14 +96,14 @@ for m = 1:numel(sponSepTF)
 		% Check if 'type' is used for grouping
 		typeTF = strcmp(groupFields{n}, 'type');
 		if isempty(find(typeTF, 1))
-			VIIOdata = projectSettings.VIIOdata; % Use all ROIs if 'type' is not used
+			VIIOdata = projCfg.VIIOdata; % Use all ROIs if 'type' is not used
 		else
 			VIIOdata = VIIOdataSynchInfo; % Use the 'type' containing ROIs
 		end
 
 		% Group events
 		[eventStruct.(sponGroupFieldName).(eventStructFields{n})] = extractAndGroupEvents(VIIOdata, groupFields{n},...
-			'filterROIs',filterROIs,'filterROIsStimTags',projectSettings.ROIfilter.StimTags,'filterROIsStimEffects',projectSettings.ROIfilter.StimEffects,...
+			'filterROIs',filterROIs,'filterROIsStimTags',projCfg.roiFilter.StimTags,'filterROIsStimEffects',projCfg.roiFilter.StimEffects,...
 			'entry', 'event', 'separateSpon', sponSepTF(m), 'modifyEventTypeName', true);
 
 		% Setup the comparison types, GLMM parameters for analysis and plots
@@ -112,9 +112,9 @@ for m = 1:numel(sponSepTF)
 
 		% Analyze and plot eventProp
         subFolder = fullfile(saveDir, sponGroupFieldName, eventStructFields{n});
-		[~, ~] = plotEventPropMultiGroups(eventStruct.(sponGroupFieldName).(eventStructFields{n}), props, organizeStruct,...
-			'mmModel', mmModel, 'mmHierarchicalVars', mmHierarchicalVars, 'mmDistribution', mmDistribution, 'mmLink', mmLink,...
-			'saveFig', saveFig, 'saveDir', subFolder);
+		[~, ~] = plotEventPropMultiGroups(eventStruct.(sponGroupFieldName).(eventStructFields{n}),...
+			eventPropNames, organizeStruct, 'mmModel', mmModel,'mmHierarchicalVars', mmHierarchicalVars,...
+			'mmDistribution', mmDistribution, 'mmLink', mmLink, 'saveFig', saveFig, 'saveDir', subFolder);
 
 	end
 end
@@ -123,30 +123,32 @@ end
 %% ==========
 % Extract frequency and interval of spon events in ROIs and analyze them
 % Settings for plots
+close all
 saveFig = true; % true/false
-saveDir = fullfile(projectSettings.resultsFolder,'EventProp');
-props = {'sponfq','sponInterval','cv2'}; % Properties to by analyzed
+saveDir = fullfile(projCfg.resultsFolder,'SponFreq');
+roiGroupFields = {'peak_category','subNuclei'}; % Group ROI entries using these fields
+roiPropNames = {'sponfq','sponInterval','cv2'}; % Properties to by analyzed
 dataDist = 'posSkewed'; % Setup data distribution for GLMM fitting
 
+% GLMM analysis settings
+mmModel = 'GLMM';
 
 % Setup the filters to exclude the ROIs showing the excitatory response to optogenetic activation of N-O terminals
 filterROIs = true; % true/false. If true, screen ROIs using the settings below
-StimTags = {'N-O-5s','AP-0.1s','N-O-5s AP-0.1s'}; % {'og-5s','ap-0.1s','og-5s ap-0.1s'}. compare the alignedData.stim_name with these strings and decide what filter to use
-StimEffects = {[0 nan nan nan], [nan nan nan nan], [0 nan nan nan]}; % [ex in rb exApOg]. ex: excitation. in: inhibition. rb: rebound. exApOg: exitatory effect of AP during OG
 
-% b. Create grouped_event for plotting ROI properties
-ggSetting.entry = 'roi'; % 'roi': events from a ROI are stored in a length-1 struct. mean values were calculated.
-ggSetting.separateSpon = false; % true/false. Separated spon using stimualtion
-ggSetting.groupField = {'peak_category','subNuclei'}; % options: 'fovID', 'stim_name', 'peak_category'; Field of eventProp_all used to group events 
-[roiStructForPlot] = getAndGroup_eventsProp(alignedData_allTrials,...
-	'entry',ggSetting.entry,'modify_stim_name',ggSetting.modify_stim_name,...
-	'filterROIs',filterROIs,'filterROIsStimTags',StimTags,'filterROIsStimEffects',StimEffects,...
-	'ggSetting',ggSetting,'adata',adata,'debug_mode',debug_mode);
+% Group ROI
+[roiStruct] = extractAndGroupEvents(projCfg.VIIOdata, roiGroupFields,...
+	'filterROIs',filterROIs,'filterROIsStimTags', projCfg.roiFilter.StimTags,...
+	'filterROIsStimEffects',projCfg.roiFilter.StimEffects,...
+	'entry', 'roi', 'modifyEventTypeName', true);
 
-% Group using stim_name: This will be used to calculate the event probability
-ggSetting.groupField = {'stim_name'}; % options: 'fovID', 'stim_name', 'peak_category'; Field of eventProp_all used to group events 
-ggSetting.dis_spon = true; % true/false. Discard spontaneous events
-[roiStructForEventProb] = getAndGroup_eventsProp(alignedData_allTrials,...
-	'entry',ggSetting.entry,'modify_stim_name',ggSetting.modify_stim_name,...
-	'filterROIs',filterROIs,'filterROIsStimTags',StimTags,'filterROIsStimEffects',StimEffects,...
-	'ggSetting',ggSetting,'adata',adata,'debug_mode',debug_mode);
+% Keep spon groups
+roiStructSpon = filter_entries_in_structure(roiStruct, 'group',...
+    'tags_keep', 'spon');
+
+% Analyze and plot Prop of spon events: listed in 'roiPropNames'
+[~] = plotEventProp(roiStructSpon, roiPropNames, 'fnamePrefix', 'roiSponProp',...
+	'mmModel', projCfg.mm.posSkew.Model, 'mmHierarchicalVars', projCfg.mm.posSkew.HierarchicalVars,...
+	'mmDistribution', projCfg.mm.posSkew.Distribution, 'mmLink', projCfg.mm.posSkew.Link,...
+	'saveFig', saveFig, 'saveDir', saveDir);
+

@@ -8,8 +8,8 @@ fprintf('Project folder: %s\n', projectFolder);
 fprintf('Project name: %s\n', projectName);
 
 % Step 2: Initialize global variables
-global projectSettings;
-projectSettings = struct(...
+global projCfg;
+projCfg = struct(...
     'projectName', projectName, ...
     'projectFolder', projectFolder, ...
     'dataFolder', fullfile(projectFolder, 'data'), ...
@@ -22,7 +22,7 @@ disp('Initialized global project settings.');
 stateFile = fullfile(projectFolder, 'projectState.mat');
 if isfile(stateFile)
     load(stateFile, 'projectState'); % Load 'projectState' variable
-    projectSettings.state = projectState; % Attach to global settings
+    projCfg.state = projectState; % Attach to global settings
     disp('Loaded saved project state.');
 else
     disp('No saved project state found.');
@@ -36,19 +36,19 @@ addpath(genpath('D:\guoda\Documents\MATLAB\Codes\SharedLibs'));
 addpath(genpath('D:\guoda\Documents\MATLAB\Codes\CNMF_E\ca_source_extraction'));
 
 % Step 5: Load VIIOdata.mat automatically
-dataFile = fullfile(projectSettings.dataFolder, 'VIIOdata.mat');
+dataFile = fullfile(projCfg.dataFolder, 'VIIOdata.mat');
 if isfile(dataFile)
     load(dataFile, 'VIIOdata'); % Load 'VIIOdata' variable from the .mat file
-    projectSettings.VIIOdata = VIIOdata; % Attach to global settings (optional)
+    projCfg.VIIOdata = VIIOdata; % Attach to global settings (optional)
     disp('Loaded VIIOdata.mat successfully.');
 else
     disp('VIIOdata.mat not found.');
 end
 
-egDataFile = fullfile(projectSettings.dataFolder, 'VIIOdataFig1Example.mat');
+egDataFile = fullfile(projCfg.dataFolder, 'VIIOdataFig1Example.mat');
 if isfile(egDataFile)
     load(egDataFile, 'VIIOdataNoStimExample'); % Load 'VIIOdata' variable from the .mat file
-    projectSettings.VIIOdataNoStimExample = VIIOdataNoStimExample; % Attach to global settings (optional)
+    projCfg.VIIOdataNoStimExample = VIIOdataNoStimExample; % Attach to global settings (optional)
     disp('Loaded VIIOdataFig1Example.mat successfully.');
 else
     disp('VIIOdataFig1Example.mat not found.');
@@ -57,8 +57,22 @@ end
 % Step 5: Add the settings for ROI filter
 % ROIs in the recordings applied with various stimulations were filtered
 % depend on how they react to the stimulation.
-projectSettings.ROIfilter.StimTags = {'N-O-5s','AP-0.1s','N-O-5s AP-0.1s'}; % 
-projectSettings.ROIfilter.StimEffects = {[0 nan nan nan], [nan nan nan nan], [0 nan nan nan]}; % [ex in rb exApNO]. ex: excitation. in: inhibition. rb: rebound. exApNO: exitatory effect of AP during N-O
+projCfg.roiFilter.StimTags = {'N-O-5s','AP-0.1s','N-O-5s AP-0.1s'}; % 
+projCfg.roiFilter.StimEffects = {[0 nan nan nan], [nan nan nan nan], [0 nan nan nan]}; % [ex in rb exApNO]. ex: excitation. in: inhibition. rb: rebound. exApNO: exitatory effect of AP during N-O
 
+% Step 6: Set up the parameters for (Generalized) Linear Mixed Model
+% analysis
+
+% Used GLMM for positively skewed data
+projCfg.mm.posSkew.Model = 'GLMM'; % Name of the model
+projCfg.mm.posSkew.Distribution = 'gamma'; % Fit to a Gamma distribution
+projCfg.mm.posSkew.Link = 'log'; % Link function
+projCfg.mm.posSkew.HierarchicalVars = {'trialName', 'roiName'}; % Hierarchical vars for random effects in the model
+
+% Used LMM for normal distribution data
+projCfg.mm.norm.Model = 'LMM'; % Name of the model
+projCfg.mm.norm.Distribution = ''; % LMM should only used on normal distribution. No need to specify this
+projCfg.mm.norm.Link = ''; % N.A. for LMM's normal distribution data
+projCfg.mm.norm.HierarchicalVars = {'trialName', 'roiName'}; % Hierarchical vars for random effects in the model
 
 disp('Project startup complete.');
