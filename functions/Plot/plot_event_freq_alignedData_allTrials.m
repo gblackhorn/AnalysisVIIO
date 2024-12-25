@@ -30,8 +30,8 @@ function [varargout] = plot_event_freq_alignedData_allTrials(alignedData, vararg
     addParameter(p, 'apCorrection', true, @islogical); % Apply AP correction
     addParameter(p, 'splitLongStim', [1], @isnumeric); % Split long stimulations
     addParameter(p, 'binWidth', 1, @isnumeric); % Width of histogram bins (s)
-    addParameter(p, 'baseBinIDX', 1, @isnumeric); % Width of histogram bins (s)
-    addParameter(p, 'effectBinIDX', 4, @isnumeric); % index of stimulation effect bin
+    addParameter(p, 'baseBinIDX', 1, @isnumeric); % Index of baseline bin
+    addParameter(p, 'effectBinIDX', 4, @isnumeric); % Index of stimulation effect bin
     addParameter(p, 'PropName', 'rise_time', @ischar); % Property name ('rise_time', 'peak_time')
     addParameter(p, 'stimIDX', [], @isnumeric); % Indices of stimulation repeats
     addParameter(p, 'AlignEventsToStim', true, @islogical); % Align events to stimulation onsets
@@ -49,9 +49,9 @@ function [varargout] = plot_event_freq_alignedData_allTrials(alignedData, vararg
     addParameter(p, 'ylabelStr', '', @ischar); % Y-axis label
     addParameter(p, 'shadeColors', {'#F05BBD','#4DBEEE','#ED8564'}, @iscell); % Colors for shading stimulation periods
     addParameter(p, 'mmType', 'GLMM', @ischar); % Type of mixed-model for stat
-    addParameter(p, 'mmlHierarchicalVars', {'trialNames','roiNames'}, @iscell); % Hierarchical vars used fo nested random effects
-    addParameter(p, 'mmDistribution', 'Poisson', @ischar); % mix-model distribution
-    addParameter(p, 'mmLink', 'log', @ischar); % mix-model link function
+    addParameter(p, 'mmlHierarchicalVars', {'trialNames','roiNames'}, @iscell); % Hierarchical vars used for nested random effects
+    addParameter(p, 'mmDistribution', 'Poisson', @ischar); % Mixed-model distribution
+    addParameter(p, 'mmLink', 'log', @ischar); % Mixed-model link function
     addParameter(p, 'save_fig', false, @islogical); % Save figure
     addParameter(p, 'save_dir', '', @ischar); % Directory to save figure
     addParameter(p, 'gui_save', false, @islogical); % GUI save option
@@ -154,11 +154,7 @@ function [varargout] = plot_event_freq_alignedData_allTrials(alignedData, vararg
 		'fig_name',titleStr); % create a figure
 	tlo = tiledlayout(f,f_rowNum,f_colNum);
 
-	% % Create figure to print ANOVA result as UI table
-	% [fstat,fstat_rowNum,fstat_colNum] = fig_canvas(stim_type_num,'unit_width',plot_unit_width,'unit_height',plot_unit_height,'column_lim',2,...
-	% 	'fig_name',titleStr); % create a figure
-	% tloStat = tiledlayout(fstat,fstat_rowNum,fstat_colNum);
-
+	
 	for stn = 1:stim_type_num
 		PeriBaseRange = [baseBinEdgestart baseBinEdgeEnd];
 		[EventFreqInBins,binEdges,stimShadeData,stimShadeName,stimEventCatName,binNames] = get_EventFreqInBins_trials(alignedData,stim_names{stn},...
@@ -235,12 +231,6 @@ function [varargout] = plot_event_freq_alignedData_allTrials(alignedData, vararg
 		% Convert the ef array to a structure var for plotting and GLMM analysis
 		efStruct = efArray2struct(ef, EventFreqInBins, xdata);
 
-		% % Replace the contents in xdata, center of bin time, to binNames
-		% xdataUnique = unique(xdata);
-		% xdataUnique = num2cell(xdataUnique(:)); % convert xdataUnique from number to cell
-		% replacementCell = [xdataUnique, binNames(:)]; % Create a replacementCell, in which old xdata and binNames are paired
-		% % efStruct = replaceFieldValues(efStruct, 'xdata', replacementCell);
-
 
 		barInfo = empty_content_struct({'data', 'stat'}, 1);
 
@@ -261,10 +251,6 @@ function [varargout] = plot_event_freq_alignedData_allTrials(alignedData, vararg
 		if customizeEdges
 			baselineDataArray = barStat(stn).data(baseBinIDX).groupData;
 
-			% % SignTest
-			% pValueSign = signtest(diff2BaseData);
-			% signTestMethodStr = sprintf('Sign Test %s', diff2BaseStr);
-			% signTestTab = table({signTestMethodStr}, pValueSign, 'VariableNames', {'Method', 'PValue'});
 
 			% barStat(stn).signTestTab = signTestTab;
 		else
@@ -304,44 +290,6 @@ function [varargout] = plot_event_freq_alignedData_allTrials(alignedData, vararg
 
 		ylim([-1 10]); % Manually set limits
 
-
-		% % Run Repeated measures ANOVA
-		% % Convert matrix to table
-		% efTable = array2table(ef, 'VariableNames', binNames);
-
-		% % Define the within-subjects design (time points)
-		% time = table(binNames', 'VariableNames', {'Time'});
-
-		% % Define repeated measures model
-		% validVarNames = matlab.lang.makeValidName(time{:,:});
-		% efTable.Properties.VariableNames = validVarNames;
-		% model_formula = sprintf('%s-%s ~ 1', efTable.Properties.VariableNames{1}, efTable.Properties.VariableNames{end});
-		% rm = fitrm(efTable, model_formula, 'WithinDesign', time);
-
-		% % Perform repeated measures ANOVA
-		% ranovaResults = ranova(rm);
-
-		% % Perform post-hoc multiple comparisons
-		% ranovaMultComp = multcompare(rm, 'Time');
-
-		% barStat(stn).ranova = ranovaResults;
-		% barStat(stn).ranovaMultComp = ranovaMultComp;
-
-
-		% % combine baseline data and run anova to compare baseline and the rest bins
-		% % xdataStr_combineBase = NumArray2StringCell(xdata);
-		% % [xdataStr_combineBase{idxBaseData}] = deal(baseRangeStr);
-		% efDataCell = num2cell(ef,1);
-		% [efArray,xdataStr_combineBaseArray] = createDataAndGroupNameArray(efDataCell,binNames);
-		% stat_combineBase = anova1_with_multiComp(efArray,xdataStr_combineBaseArray);
-
-		% barStat(stn).anovaCombineBase = stat_combineBase;
-		% % plot multiCompare stat on another figure
-		% MultCom_stat = barStat(stn).anovaCombineBase.c(:,["g1","g2","p","h"]);
-
-		% axStat = nexttile(tloStat);
-		% plotUItable(fstat,axStat,ranovaMultComp);
-		% % plotUItable(fstat,axStat,MultCom_stat);
 	end
 	sgtitle(titleStr)
 	varargout{1} = barStat;
@@ -370,18 +318,6 @@ function [varargout] = plot_event_freq_alignedData_allTrials(alignedData, vararg
 			tableToLatex(barStat(i).signRankTab, 'saveToFile',true,'filename',...
 			    fullfile(save_dir,latexTabNameSignRank), 'caption', latexTabNameSignRank,'columnAdjust', 'XXXXX');
 		end
-
-		% if customizeEdges
-		% 	for i = 1:numel(barStat) 
-		% 		latexTabNameBootstrap = sprintf('%s bootStrap [%s].tex', titleStr, barStat(i).stim);
-		% 		tableToLatex(barStat(i).bootStrapTab, 'saveToFile',true,'filename',...
-		% 		    fullfile(save_dir,latexTabNameBootstrap), 'caption', latexTabNameBootstrap,'columnAdjust', 'XXXXXXX');
-
-		% 		% latexTabSignTestName = sprintf('%s signTest [%s].tex', titleStr, barStat(i).stim);
-		% 		% tableToLatex(barStat(i).signTestTab, 'saveToFile',true,'filename',...
-		% 		%     fullfile(save_dir,latexTabSignTestName), 'caption', latexTabSignTestName,'columnAdjust', 'XXXXXXX');
-		% 	end
-		% end
 
 		if filter_roi_tf
 			filterInfoFile = fullfile(save_dir, [titleStr, '_filterInfo']);
@@ -468,13 +404,6 @@ function efStruct = efArray2struct(ef, EventFreqInBins, xdata)
 	roiNum = size(ef, 1);
 	binNum = size(ef, 2);
 
-	% % Validate the data
-	% if roiNum ~=  length(EventFreqInBins)
-	% 	error('The row number of ef and the length of EventFreqInBins must be the same')
-	% end
-	% if binNum ~= length(xdata)
-	% 	error('The col number of ef and the length of xdata must be the same')
-	% end
 
 	% Create an empty cell to pre-allocate RAM
 	efStructCell = cell(1, binNum);

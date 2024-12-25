@@ -545,7 +545,7 @@ end
 plotDiff = false; % true/false. plot the difference of comparable bins from various stimulation recording groups
 
 filter_roi_tf = true; % true/false. If true, screen ROIs
-stim_names = {'og-5s','ap-0.1s','og-5s ap-0.1s'}; % {'og-5s','ap-0.1s','og-5s ap-0.1s'}. compare the alignedData.stim_name with these strings and decide what filter to use
+stim_names = {'N-O-5s','AP-0.1s','N-O-5s AP-0.1s'}; % {'N-O-5s','ap-0.1s','N-O-5s AP-0.1s'}. compare the alignedData.stim_name with these strings and decide what filter to use
 filters = {[0 nan nan nan], [nan nan nan nan], [0 nan nan nan]}; % [ex in rb exApOg]. ex: excitation. in: inhibition. rb: rebound. exApOg: exitatory effect of AP during OG
 subNucleiFilter = 'PO';
 diffPair = {[1 3], [2 3], [1 2]}; % {[1 3], [2 3]}. binned freq will be compared between stimualtion groups. cell number = stimulation pairs. [1 3] mean stimulation 1 vs stimulation 2
@@ -562,13 +562,13 @@ splitLongStim = [1]; % If the stimDuration is longer than stimEffectDuration, th
 					% [stimStart, stimEffectDuration, stimEffectDuration+splitLongStim, stimEnd] 
 					
 stimEventsPos = false; % true/false. If true, only use the peri-stim ranges with stimulation related events
-stimEvents(1).stimName = 'og-5s';
+stimEvents(1).stimName = 'N-O-5s';
 stimEvents(1).eventCat = 'rebound';
 stimEvents(1).eventCatFollow = 'spon'; % The category of first event following the eventCat one
-stimEvents(2).stimName = 'ap-0.1s';
+stimEvents(2).stimName = 'AP-0.1s';
 stimEvents(2).eventCat = 'trig';
 stimEvents(2).eventCatFollow = 'spon'; % The category of first event following the eventCat one
-stimEvents(3).stimName = 'og-5s ap-0.1s';
+stimEvents(3).stimName = 'N-O-5s AP-0.1s';
 stimEvents(3).eventCat = 'rebound';
 stimEvents(3).eventCatFollow = 'spon'; % The category of first event following the eventCat one
 

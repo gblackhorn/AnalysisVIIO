@@ -11,9 +11,6 @@ saveFig = true; % true/false
 % Setup the folder path to save plots
 saveDir = fullfile(projCfg.resultsFolder,'CaImgExample_noStim');
 
-% Setup the path of the CSV file containing raw traces
-csvTraceFilePath = fullfile(projCfg.dataFolder  , '2021-03-29-14-19-43_VIIOdataFig1Example.csv');
-
 % Plot ROIs' traces in the example recording 
 csvTraceFilePath = fullfile(projCfg.dataFolder  , '2021-03-29-14-19-43_VIIOdataFig1Example.csv');
 [figHandles, processedData] = createCaImgExampleFig(projCfg.VIIOdataNoStimExample,...
@@ -152,3 +149,5 @@ roiStructSpon = filter_entries_in_structure(roiStruct, 'group',...
 	'mmDistribution', projCfg.mm.posSkew.Distribution, 'mmLink', projCfg.mm.posSkew.Link,...
 	'saveFig', saveFig, 'saveDir', saveDir);
 
+%% ==========
+% Analyze the peristimulus time histograms (PSTH) of event frequency

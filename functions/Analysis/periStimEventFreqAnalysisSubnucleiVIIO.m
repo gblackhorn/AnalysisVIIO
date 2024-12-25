@@ -15,7 +15,7 @@ function [barStat, diffStat, varargout] = periStimEventFreqAnalysisSubnucleiVIIO
 
 	% Add parameters to the parser with default values and comments
 	addParameter(p, 'filter_roi_tf', true); % true/false. If true, screen ROIs
-	addParameter(p, 'stim_names', {'og-5s','ap-0.1s','og-5s ap-0.1s'}); % compare the alignedData.stim_name with these strings and decide what filter to use
+	addParameter(p, 'stim_names', {'N-O-5s','AP-0.1s','N-O-5s AP-0.1s'}); % compare the alignedData.stim_name with these strings and decide what filter to use
 	addParameter(p, 'filters', {[0 nan nan nan], [nan nan nan nan], [0 nan nan nan]}); % [ex in rb]. ex: excitation. in: inhibition. rb: rebound
 	% addParameter(p, 'subNucleiFilter', '',...
 	% 				@(x) any(validatestring(x,{'','PO','DAO'}))); % [ex in rb]. ex: excitation. in: inhibition. rb: rebound
@@ -36,7 +36,7 @@ function [barStat, diffStat, varargout] = periStimEventFreqAnalysisSubnucleiVIIO
 	                                      % [stimStart, stimEffectDuration, stimEffectDuration+splitLongStim, stimEnd]
 	addParameter(p, 'bootstrap', true); % true/false. If true, use bootstrap for comparison between the groups applied with different stimulations
 	addParameter(p, 'stimEventsPos', false); % true/false. If true, only use the peri-stim ranges with stimulation related events
-	addParameter(p, 'stimEvents', struct('stimName', {'og-5s', 'ap-0.1s', 'og-5s ap-0.1s'}, 'eventCat', {'rebound', 'trig', 'rebound'}, 'eventCatFollow', {'spon', 'spon', 'spon'}));
+	addParameter(p, 'stimEvents', struct('stimName', {'N-O-5s','AP-0.1s','N-O-5s AP-0.1s'}, 'eventCat', {'rebound', 'trig', 'rebound'}, 'eventCatFollow', {'spon', 'spon', 'spon'}));
 	addParameter(p, 'normToBase', true); % true/false. normalize the data to baseline (data before baseBinEdge)
 	addParameter(p, 'baseBinEdgestart', -5); % where to start to use the bin for calculating the baseline. -1
 	addParameter(p, 'baseBinEdgeEnd', -2); % 0
@@ -138,7 +138,7 @@ function [barStat, diffStat, varargout] = periStimEventFreqAnalysisSubnucleiVIIO
 
 		% Airpuff effect is almost only seen in the caudal PO. DAO rarely shows airpuff response
 		if strcmpi(subNucleiFilter, 'PO') && customizeEdges
-			violinStimNames1 = {'og-5s ap-0.1s','og-5s'}; % {'og-5s','ap-0.1s','og-5s ap-0.1s'}. these groups will be used for the violin plot
+			violinStimNames1 = {'N-O-5s AP-0.1s','N-O-5s'}; % {'N-O-5s','ap-0.1s','N-O-5s AP-0.1s'}. these groups will be used for the violin plot
 			violinBinIDX1 = [4,4]; % [4,3,4]. violinPlot: the nth bin from the data listed in stimNames
 			violinTitleStr1 = sprintf('%s periStimFreq [%s] violin %s',subNucleiFilter, strjoin(violinStimNames1(:), ' vs '), normStr);
 			% violinTitleStr1 = sprintf('%s violinPlot of a single bin from periStim freq%s',subNucleiFilter, normStr);
@@ -148,7 +148,7 @@ function [barStat, diffStat, varargout] = periStimEventFreqAnalysisSubnucleiVIIO
 			summaryStatsTab1 = struct2table(statInfo1.dataInfo);
 
 			% event freq comparison: baseline of AP vs AP
-			violinStimNames2 = {'ap-0.1s','ap-0.1s'}; % {'og-5s','ap-0.1s','og-5s ap-0.1s'}. these groups will be used for the violin plot
+			violinStimNames2 = {'ap-0.1s','ap-0.1s'}; % {'N-O-5s','ap-0.1s','N-O-5s AP-0.1s'}. these groups will be used for the violin plot
 			violinBinIDX2 = [1,3]; % [4,3,4]. violinPlot: the nth bin from the data listed in stimNames
 			violinTitleStr2 = sprintf('%s periStimFreq [%s] violin %s',subNucleiFilter, strjoin(violinStimNames2(:), ' vs '), normStr);
 			% violinTitleStr2 = sprintf('%s violinPlot of a single bin from periStim freq%s',subNucleiFilter, normStr);
@@ -168,10 +168,10 @@ function [barStat, diffStat, varargout] = periStimEventFreqAnalysisSubnucleiVIIO
 			tlo = tiledlayout(f, 1, 2); % setup tiles
 			% Bar plot
 			axBar = nexttile(tlo,[1 1]); 
-			foldDataOGAP = statInfo1.data.OGAP/mean(statInfo1.data.OG);  
+			foldDataNOAP = statInfo1.data.NOAP/mean(statInfo1.data.NO);  
 			foldDataAP = statInfo2.data.APfirstStim/mean(statInfo2.data.APbaseline);
-			[barInfo,~,barInfoStatTab] = barplot_with_stat({foldDataAP,foldDataOGAP},'plotWhere',axBar,...
-				'group_names',{'AP without OG','AP with OG'},'ylabelStr','eventFreq fold-change',...
+			[barInfo,~,barInfoStatTab] = barplot_with_stat({foldDataAP,foldDataNOAP},'plotWhere',axBar,...
+				'group_names',{'AP without NO','AP with NO'},'ylabelStr','eventFreq fold-change',...
 				'title_str', [foldChangeTitleStr,' bar'],'save_fig',false,'save_dir',saveDir,'gui_save',false); % 'title_str',title_str,
 			% plot stat results next to bars
 			axStat = nexttile(tlo,[1 1]);
@@ -179,7 +179,7 @@ function [barStat, diffStat, varargout] = periStimEventFreqAnalysisSubnucleiVIIO
 			title(barInfo.stat.Method)
 
 
-			statInfoFoldChange = violinplotWithStat({foldDataAP,foldDataOGAP},'groupNames',{'AP without OG','AP with OG'},...
+			statInfoFoldChange = violinplotWithStat({foldDataAP,foldDataNOAP},'groupNames',{'AP without NO','AP with NO'},...
 			    'bootstrap',bootstrap,'titleStr',[foldChangeTitleStr,' violin'],'save_fig',save_fig,'save_dir',saveDir);
 			summaryStatsTabFoldChange = struct2table(statInfoFoldChange.dataInfo);
 
@@ -199,7 +199,7 @@ function [barStat, diffStat, varargout] = periStimEventFreqAnalysisSubnucleiVIIO
 				    fullfile(saveDir,NameSummaryStatsANDnNumTab), 'caption', NameSummaryStatsANDnNumTab,...
 				    'columnAdjust', 'XXXXXXXXXXX');
 
-				% Save the tables: Summary stats of the fold-change between AP-alone and AP-OG
+				% Save the tables: Summary stats of the fold-change between AP-alone and AP-NO
 				NameSummaryStatsFoldChange = sprintf('%s periStimFreq foldChange summaryStats.tex', subNucleiFilter);
 				tableToLatex(summaryStatsTabFoldChange, 'saveToFile',true,'filename',...
 				    fullfile(saveDir,NameSummaryStatsFoldChange), 'caption', NameSummaryStatsFoldChange,...
