@@ -1,11 +1,10 @@
-function [periStimEdges,varargout] = setPeriStimSectionForEventFreqCalc(timeInfo,stimInfo,varargin)
+function [periStimEdges,varargout] = customizePeriStimBinEdges(stimInfo,varargin)
     % Set the section edges in a peri-stimulation window.
     %
     % This function defines the edges of time sections around a stimulation event.
     % It supports single or composite stimulations where one stimulation is inside another.
     %
     % Inputs:
-    %   timeInfo - Full time information.
     %   stimInfo - Content in a single entry of alignedData.stimInfo.
     %
     % Optional Parameters:
@@ -17,8 +16,9 @@ function [periStimEdges,varargout] = setPeriStimSectionForEventFreqCalc(timeInfo
     %
     % Outputs:
     %   periStimEdges - Edges of the peri-stimulation sections. Each row corresponds to a repeat.
-    %   varargout{1} - Number of stimulus repetitions.
-    %   varargout{2} - Names of the bins.
+    %   varargout{1} - Vector. Time of stimulation onsets. Use the earlier one if multiple stimulations exist)
+    %   varargout{2} - Number of stimulus repetitions.
+    %   varargout{3} - Names of the bins.
 
     % Defaults
     preStimDuration = 5;
@@ -118,7 +118,9 @@ function [periStimEdges,varargout] = setPeriStimSectionForEventFreqCalc(timeInfo
     periStimEdges(:,end) = stimDurationStruct(stimStartSortIDX(1)).range(:,2) + postStimDuration;
     stimStartSecIDX = [stimStartSecIDX 3];
 
-    varargout{1} = stimRepeatNum;
+   % Assign outputs
+    varargout{1} = stimInfo.UnifiedStimDuration.range(:, 1); % Time of stimulation onsets. Use the earlier one if multiple stimulations exist)
+    varargout{2} = stimRepeatNum;
     varargout{2} = binNames;
 end
 

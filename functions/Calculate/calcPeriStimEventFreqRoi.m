@@ -15,12 +15,6 @@ function [sectEventFreq,varargout] = calcPeriStimEventFreqRoi(eventTimeStamps,pe
 	        alignEventsToStim = varargin{ii+1}; % struct var including fields 'cat_type', 'cat_names' and 'cat_merge'
 	    elseif strcmpi('stimStartSecIDX', varargin{ii})
 	        stimStartSecIDX = varargin{ii+1}; 
-	    % elseif strcmpi('plot_raw_races', varargin{ii})
-	    %     plot_raw_races = varargin{ii+1}; % struct var including fields 'cat_type', 'cat_names' and 'cat_merge'
-        % elseif strcmpi('eventCat', varargin{ii})
-	    %     eventCat = varargin{ii+1};
-        % elseif strcmpi('fname', varargin{ii})
-	    %     fname = varargin{ii+1};
 	    end
 	end
 
