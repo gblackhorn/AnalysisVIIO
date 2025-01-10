@@ -1,4 +1,4 @@
-function [periStimEdges,varargout] = customizePeriStimBinEdges(stimInfo,varargin)
+function [periStimEdges, binNames, varargout] = customizePeriStimBinEdges(stimInfo,varargin)
     % Set the section edges in a peri-stimulation window.
     %
     % This function defines the edges of time sections around a stimulation event.
@@ -118,9 +118,18 @@ function [periStimEdges,varargout] = customizePeriStimBinEdges(stimInfo,varargin
     periStimEdges(:,end) = stimDurationStruct(stimStartSortIDX(1)).range(:,2) + postStimDuration;
     stimStartSecIDX = [stimStartSecIDX 3];
 
+    % Remove the 'preStim' bin if baseline ends at the beginning of the stimulation
+    if isequal(periStimEdges(:,2), periStimEdges(:,3)) % If the baseline end and preStim end are the same
+        periStimEdges(:,3) = [];
+        binNames{2} = [];
+    end
+
+    % Create one row of PSTH bin edges relative to the first stimulation
+    periStimEdgesStimRef = periStimEdges(1, :) - stimInfo.UnifiedStimDuration.range(1, 1); 
+
    % Assign outputs
     varargout{1} = stimInfo.UnifiedStimDuration.range(:, 1); % Time of stimulation onsets. Use the earlier one if multiple stimulations exist)
-    varargout{2} = stimRepeatNum;
-    varargout{2} = binNames;
+    varargout{2} = periStimEdgesStimRef;
+    varargout{3} = stimRepeatNum;
 end
 

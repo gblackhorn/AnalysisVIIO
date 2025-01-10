@@ -1,4 +1,4 @@
-function [periStimEdges, varargout] = setPeriStimBinEdges(StimRanges, binWidth, varargin)
+function [periStimEdges, binNames, varargout] = setPeriStimBinEdges(StimRanges, binWidth, varargin)
     % Return the bin edges for peri-stimulus event frequency calculation.
     %
     % This function defines the edges of time bins around stimulation events.
@@ -43,15 +43,31 @@ function [periStimEdges, varargout] = setPeriStimBinEdges(StimRanges, binWidth, 
     % Get the number of stimulations
     stimRepeatNum = size(StimRanges, 1); % Number of stimulations = number of groups
 
-    % Set the bin edges using the given binWidth
-    periStimEdges = [periStimRanges(1):binWidth:periStimRanges(2)]; % PeriStim edges. Stimulation at 0
+    % Determine the maximum row length of periStimRanges
+    maxCols = max(floor((periStimRanges(:, 2) - periStimRanges(:, 1)) / binWidth)) + 1;
+    
+    % Preallocate the result matrix, periStimEdges, with NaN
+    numRows = size(periStimRanges, 1);
+    periStimEdges = NaN(numRows, maxCols);
+    
+    % Loop through each row of periStimRanges
+    for i = 1:numRows
+        % Generate the range with the specified binWidth
+        rowRange = periStimRanges(i, 1):binWidth:periStimRanges(i, 2);
+        
+        % Fill the result matrix with the generated range
+        periStimEdges(i, 1:length(rowRange)) = rowRange;
+    end
 
+    
     % Set the bin names with the center of the bins
     binXcell = num2cell(periStimEdges(1:end-1) + binWidth / 2);
     binNames = cellfun(@num2str, binXcell, 'UniformOutput', false);
 
+    % Create one row of PSTH bin edges relative to the first stimulation
+    periStimEdgesStimRef = periStimEdges(1, :) - StimRanges(1, 1); 
+
     % Assign outputs
     varargout{1} = StimRanges(:, 1); % Time of stimulation onsets.
     varargout{2} = stimRepeatNum;
-    varargout{3} = binNames;
 end

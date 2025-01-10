@@ -245,6 +245,16 @@ function [varargout] = plot_event_freq_alignedData_allTrials(alignedData, vararg
 		barStat(stn).binEdges = binEdges;
 		barStat(stn).binX = xdata;
 		barStat(stn).binNames = binNames;
+		
+		% mark the bar with the customized binName
+		% xticklabels(binNames)
+		xlabel(xlabelStr)
+		xtickangle(xTickAngle)
+
+		ylabel(ylabelStr)
+		title(sub_titleStr,'FontSize',10)
+
+		ylim([-1 10]); % Manually set limits
 
 
 		% Run bootstrap analysis and signTest to compare the stimulation affected group to the baseline group
@@ -278,17 +288,6 @@ function [varargout] = plot_event_freq_alignedData_allTrials(alignedData, vararg
 		% Concatenate all the bootstrap and signRank results
 		barStat(stn).bootStrapTab = vertcat(bootStrapTabCell{:});
 		barStat(stn).signRankTab = vertcat(signRankTabCell{:});
-
-
-		% mark the bar with the customized binName
-		% xticklabels(binNames)
-		xlabel(xlabelStr)
-		xtickangle(xTickAngle)
-
-		ylabel(ylabelStr)
-		title(sub_titleStr,'FontSize',10)
-
-		ylim([-1 10]); % Manually set limits
 
 	end
 	sgtitle(titleStr)
@@ -403,7 +402,6 @@ function efStruct = efArray2struct(ef, EventFreqInBins, xdata)
 	% Get the ROI number and the bin number
 	roiNum = size(ef, 1);
 	binNum = size(ef, 2);
-
 
 	% Create an empty cell to pre-allocate RAM
 	efStructCell = cell(1, binNum);

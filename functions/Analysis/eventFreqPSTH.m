@@ -1,4 +1,4 @@
-function [varargout] = eventFreqPSTH(VIIOdata, stimulation, varargin)
+function [PSTHdata, varargout] = eventFreqPSTH(VIIOdata, stimulation, varargin)
 %Collect the event frequency from recording(s) applied with the same stimulation type and plot the PSTH
 % Return the statistics of the event frequency and compare the bins of the PSTH
 
@@ -19,7 +19,7 @@ function [varargout] = eventFreqPSTH(VIIOdata, stimulation, varargin)
 
     % PSTH parameters:
     addParameter(p, 'binWidth', 1, @isnumeric); % Width of each histogram bin (s) when not using customized bin edges
-    addParameter(p, 'customizeBin', false, @logical); % Boolean to use customized bin edges
+    addParameter(p, 'customizeBin', false, @islogical); % Boolean to use customized bin edges
     addParameter(p, 'stimEffectDur', 1, @isnumeric); % The duration of the stimulation effect from the start of stimulation
     addParameter(p, 'splitStim', [1], @isnumeric); % Split long stimulations when using customized bin edges. Can be a numeric array when using multiple stimulations
     addParameter(p, 'preStimDur', 6, @isnumeric); % Duration before stimulation onset (s)
@@ -30,10 +30,14 @@ function [varargout] = eventFreqPSTH(VIIOdata, stimulation, varargin)
     addParameter(p, 'discardZeroBase', true, @islogical); % Discard the roi/stimTrial if the baseline value is zero
     addParameter(p, 'eventTimeField', 'peak_time', @ischar); % Field name for event time stamps in VIIOdata.traces.eventProp
 
+    % Plotting parameters:
+    addParameter(p, 'plotwhere', gca, @(x) ishandle(x) && strcmp(get(x, 'Type'), 'axes')); % Handle to the axes where the plot will be drawn
+
     % Parse the inputs
     parse(p, VIIOdata, stimulation, varargin{:});
     pars = p.Results;
 
+    %% Calculate the event frequency in the peri-stimulus time histogram (PSTH)
     % Set up the baseline range in the PSTH
     if isempty(pars.baseStart)
         pars.baseStart = -pars.preStimDur;
@@ -51,7 +55,7 @@ function [varargout] = eventFreqPSTH(VIIOdata, stimulation, varargin)
 
     % Pre-allocate the event frequency data as a cell array
     recNum = length(VIIOdata);
-    EventFreqRecCell = cell(1, recNum);
+    eventFreqRecCell = cell(1, recNum);
         
     % Loop through recordings and collect the event frequency
     for i = 1:recNum
@@ -74,13 +78,19 @@ function [varargout] = eventFreqPSTH(VIIOdata, stimulation, varargin)
         % Set up the PSTH bin edges using customised bins or a fixed bin width
         if pars.customizeBin
             % Set the peri-stim sections (edges)
-            [periStimEdges, stimOnsetTime, stimRepeatNum, binNames] = customizePeriStimBinEdges(stimInfo,...
+            [binEdges, binNames, stimOnsetTime, binEdgesPSTH, stimRepeatNum] = customizePeriStimBinEdges(stimInfo,...
                 'preStimDuration', pars.preStimDur,'postStimDuration', pars.postStimDur,...
                 'PeriBaseRange', baseRange,'stimEffectDuration', pars.stimEffectDur,'splitLongStim', pars.splitStim);
         else
-            [periStimEdges, stimOnsetTime, stimRepeatNum, binNames] = setPeriStimBinEdges(stimInfo.UnifiedStimDuration.range, binWidth, ...
+            [binEdges, binNames, stimOnsetTime, binEdgesPSTH, stimRepeatNum] = setPeriStimBinEdges(stimInfo.UnifiedStimDuration.range, pars.binWidth, ...
                 'preStimDur', pars.preStimDur, 'postStimDur', pars.postStimDur);
         end
+
+        % Get the middle position of the bins for plotting
+        binX = binEdges(1:end-1)+diff(binEdges)/2; % Use binEdges and binWidt to create xdata for bar plot
+
+        % Get the baseline index in the PSTH bin edges
+        baselineBinIDX = binEdgesPSTH >= baseRange(1) & binEdgesPSTH < baseRange(2);
 
 
         % Filter ROIs using roiFilterNames and roiFilterBool if roiFilterNames is not empty 
@@ -95,7 +105,7 @@ function [varargout] = eventFreqPSTH(VIIOdata, stimulation, varargin)
             EventFreqRoiStruct = emptyStruct({'recNames','roiNames','subNuclei','EventFqInBins','stimNum'},[1, roiNum]); % Every entry in the struct array corresponds to an ROI
 
             % Collect label informations: Recording names, ROI names, and sub-nuclei names
-            recNames = repmat({VIIOdata(i).trialName},1, roiNum); % Create a 1*roi_num cell containing the 'recNames' in every element
+            recNames = repmat({VIIOdata(i).trialName},1, roiNum); % Create a 1*roi_num cell containing the 'recNames' in every element1
             roiNames = {VIIOdata(i).traces.roi};
             subNucleiNames = {VIIOdata(i).traces.subNuclei};
 
@@ -108,47 +118,79 @@ function [varargout] = eventFreqPSTH(VIIOdata, stimulation, varargin)
             disRoiIDX = []; % Initialize the index of ROIs to discard
             for j = 1:roiNum
                 % Get the event time stamps in the current ROI
-                eventTimeStamps = VIIOdata(i).traces(j).eventProp.(eventTimeField);
+                eventTimeStamps = [VIIOdata(i).traces(j).eventProp.(pars.eventTimeField)];
 
                 % Get the event frequency in the current ROI
-                [eventFreqPSTH, binEdgesPSTH, eventHistCounts, sectionsDuration] = calcPeriStimEventFreqInROI(eventTimeStamps, periStimEdges, stimOnsetTime);
-
-                % Fill the event frequency data in the structure
-                EventFreqRoiStruct(rn).EventFqInBins = sectEventFreq;
-                EventFreqRoiStruct(rn).stimNum = stimRepeatNum;
+                [eventFreqPSTH, binEdgesPSTH, eventHistCounts, sectionsDuration] = calcPeriStimEventFreqInROI(eventTimeStamps, binEdges, stimOnsetTime);
                 
-                if discardZeroBase || normBase
+                if pars.discardZeroBase || pars.normBase
                     % Normalize the event frequency to the baseline if normBase is true
                     % Discard the roi/stimTrial if the baseline value is zero. Output a warning message
-                    baseFreq = mean(eventFreqPSTH(binEdgesPSTH >= baseRange(1) & binEdgesPSTH <= baseRange(2)));
+                    baseFreq = mean(eventFreqPSTH(baselineBinIDX));
                     if baseFreq == 0
                         disRoiIDX = [disRoiIDX, j];
-                        warning('The baseline value is zero in the recording: %s, ROI: %s', VIIOdata(i).recName, VIIOdata(i).traces(j).roi);
+                        warning('The baseline value is zero in the recording: %s, ROI: %s', VIIOdata(i).trialName, VIIOdata(i).traces(j).roi);
                     end
-                    if normBase
+                    if pars.normBase
                         eventFreqPSTH = eventFreqPSTH / baseFreq;
                     end
                 end
+                
+                % Fill the event frequency data in the structure
+                EventFreqRoiStruct(j).EventFqInBins = eventFreqPSTH;
+                EventFreqRoiStruct(j).stimNum = stimRepeatNum;
             end
 
             % Remove the ROIs marked for discard
             EventFreqRoiStruct(disRoiIDX) = [];
 
             % Store the EventFreqRoiStruct in the cell array
-            EventFreqRecCell{i} = EventFreqRoiStruct;
+            eventFreqRecCell{i} = EventFreqRoiStruct;
         else
             warning('No ROIs found in the recording: %s', VIIOdata(i).recName);
         end
     end
 
     % Combine the event frequency data from all recordings
-    EventFreqAll = [EventFreqRecCell{:}]; % A structure array with all the event frequency data. Each entry corresponds to an ROI
+    eventFreqAll = [eventFreqRecCell{:}]; % A structure array with all the event frequency data. Each entry corresponds to an ROI
+    
+    % Calculate the number of animals, recordings, ROIs, and stimulation repeats
+    [nNum.animalNum, nNum.recNum, nNum.roiNum, nNum.stimRepeats] = getNnumber(eventFreqAll);
 
+    % Concatenate the event frequency data from all ROIs
+    eventFreqCell = {eventFreqAll.EventFqInBins}; % collect EventFqInBins in a cell array
+    eventFreqCell = eventFreqCell(:); % make sure that ef_cell is a vertical array
+    eventFreqMat = vertcat(eventFreqCell{:}); % concatenate ef_cell contents and create a number array
 
-    % Run statistical analysis on the event frequency: Bootstrapping
+    %% Run statistical analysis on the event frequency: Bootstrapping
+    % Get the baseline event frequency. Calculate the mean event frequency in the baseline range
+    baselineArray = mean(eventFreqMat(:, baselineBinIDX), 2);
 
+    % Calculate the difference between every bin after the baseline to baseline
+    binIdxAfterBase = [baselineBinIDX+1 : size(eventFreqMat, 2)]; % index of bins from the first one after baseline to the end
+    bootStrapTabCell = cell(numel(binIdxAfterBase), 1); % Create an empty cell to store the bootstrap results
+    % signRankTabCell = cell(numel(binIdxAfterBase), 1); % Create an empty cell to store the bootstrap results
+    for bn = 1:numel(binIdxAfterBase)
+        diff2BaseData = eventFreqMat(:, bn) - baselineDataArray;
+        diff2BaseStr = sprintf('bin-%d vs. baseline', binIdxAfterBase(bn));
 
-    % Plot the PSTH: boxplot or bar plot
+        % Bootstrap
+        [~,~,~,~,bootStrapTabCell{bn}]= bootstrapAnalysis(diff2BaseData, 'label', diff2BaseStr);
+
+        % % SignRank
+        % [~, ~, signRankTabCell{bn}] = signedRankAnalysis(diff2BaseData, 'label', diff2BaseStr);
+    end
+
+    % Concatenate all the bootstrap and signRank results
+    barStat(stn).bootStrapTab = vertcat(bootStrapTabCell{:});
+    barStat(stn).signRankTab = vertcat(signRankTabCell{:});
+
+    %% Plot the PSTH: boxplot or bar plot
+    % Create a structure array for the event frequency data
+    eventFreqStruct = efArray2struct(eventFreqMat, eventFreqAll, binX);
+
+    % Box plot of event freq in various time
+    barStat(stn).data = boxPlotOfStructData(eventFreqStruct, 'val', 'xdata', 'plotWhere', pars.plotwhere, 'xtickLabel', binNames);
 end
 
 
@@ -174,4 +216,59 @@ function filteredData = getFilteredData(structData, filterNames, filterVals)
             error('Unsupported filter type. Only logical and character filters are supported.');
         end
     end
+end
+
+
+function [animalNum, recNum, roiNum, stimRepeats] = getNnumber(eventFreqAll)
+    % Extract the n numbers from the event frequency data
+    % eventFreqAll.recNames contains the recording names in the format '(\d{8}-\d{6})'
+
+    % Get the unique recording names
+    recNamesAll = {eventFreqAll.recNames};
+
+    % Extract the date and time from the recording names
+	recNamesAllDate = cellfun(@(x) x(1:8),recNamesAll,'UniformOutput',false);
+	recNamesAllDateTime = cellfun(@(x) x(1:15),recNamesAll,'UniformOutput',false);
+
+    % Get the unique date and date_time names
+	recNameUniqueDate = unique(recNamesAllDate);
+	recNameUniqueDateTime = unique(recNamesAllDateTime);
+
+    % Get the number of animals, recordings, ROIs, and stimulation repeats
+	animalNum = numel(recNameUniqueDate);
+	recNum = numel(recNameUniqueDateTime);
+	roiNum = numel(eventFreqAll);
+	stimRepeats = sum([eventFreqAll.stimNum]);
+end
+
+
+function efStruct = efArray2struct(ef, EventFreqInBins, xdata)
+	% Convert the ef double array to a structure var for GLMM analysis and plot
+	% Borrow 'TrialNames', 'roiNames', 'subNuclei', and 'stimNum' from struct var 'EventFreqInBins'
+	% xdata is used to tag various columns of ef data
+
+	% Get the ROI number and the bin number
+	roiNum = size(ef, 1);
+	binNum = size(ef, 2);
+
+	% Create an empty cell to pre-allocate RAM
+	efStructCell = cell(1, binNum);
+	% efStructFieldNames = {'val', 'xdata', 'trialNames', 'roiNames', 'subNuclei', 'stimNum'};
+
+	% Extract the fields' content from EventFreqInBins
+	trialNames = {EventFreqInBins.recNames};
+	roiNames = {EventFreqInBins.roiNames};
+	subNuclei = {EventFreqInBins.subNuclei};
+	stimNum = [EventFreqInBins.stimNum];
+
+	% Loop through the columns of ef
+	for i = 1:binNum
+		efDataCell = ensureHorizontal(num2cell(ef(:, i)));
+		xdataCell = num2cell(repmat(xdata(i), 1, roiNum));
+		efStructCell{i} = struct('val', efDataCell, 'xdata', xdataCell,...
+			'trialNames', trialNames, 'roiNames', roiNames, 'subNuclei', subNuclei, 'stimNum', stimNum);
+	end
+
+	% Concatenate the cell
+	efStruct = horzcat(efStructCell{:});
 end

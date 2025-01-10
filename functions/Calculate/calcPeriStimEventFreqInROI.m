@@ -59,13 +59,13 @@ function [eventFreqPSTH,varargout] = calcPeriStimEventFreqInROI(eventTimeStamps,
 		% Calculate the durations of every section
 		sectionsDuration(n,:) = diff(sectSingleRepeat);
 
-		% Change the event time to peri-stim
-		eventsPeriStimulus{n} = eventsPeriStimulus{n}-binEdgeRefs(n);
+		% % Change the event time to peri-stim
+		% eventsPeriStimulus{n} = eventsPeriStimulus{n}-binEdgeRefs(n);
 	end
 
 	% Align the bin edges to the binEdgeRefs. Use the first repeat of stimulation
 	binEdgesPSTH = periStimBinEdges(1, :) - binEdgeRefs(1);
-	binEdgesPSTH = round(periStimBinEdges(1,:), reoundDigitSig, 'significant');
+	binEdgesPSTH = round(binEdgesPSTH, reoundDigitSig, 'significant');
 
 	% Sum the event counts across all repeats
 	eventHistCountsAll = sum(eventHistCounts,1);
