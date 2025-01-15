@@ -152,9 +152,16 @@ roiStructSpon = filter_entries_in_structure(roiStruct, 'group',...
 %% ==========
 % Analyze the peristimulus time histograms (PSTH) of event frequency
 close all
+
 saveFig = true; % true/false
 saveDir = fullfile(projCfg.resultsFolder,'eventFreqPSTH');
 preStimDuration = 6; % unit: second. include events happened before the onset of stimulations
 postStimDuration = 7; % unit: second. include events happened after the end of stimulations
 stimEffectDuration = 1; % unit: second. Use this to set the end for the stimulation effect range
 
+
+
+% Create a canvas to plot the PSTH in subplots
+[f,f_rowNum,f_colNum] = fig_canvas(stim_type_num,'unit_width',plot_unit_width,'unit_height',plot_unit_height,'column_lim',2,...
+	'fig_name',titleStr); % create a figure
+tlo = tiledlayout(f,f_rowNum,f_colNum);

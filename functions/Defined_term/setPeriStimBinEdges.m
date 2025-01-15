@@ -58,16 +58,16 @@ function [periStimEdges, binNames, varargout] = setPeriStimBinEdges(StimRanges, 
         % Fill the result matrix with the generated range
         periStimEdges(i, 1:length(rowRange)) = rowRange;
     end
-
     
-    % Set the bin names with the center of the bins
-    binXcell = num2cell(periStimEdges(1:end-1) + binWidth / 2);
-    binNames = cellfun(@num2str, binXcell, 'UniformOutput', false);
-
     % Create one row of PSTH bin edges relative to the first stimulation
     periStimEdgesStimRef = periStimEdges(1, :) - StimRanges(1, 1); 
 
+    % Set the bin names with the center of the bins
+    binXcell = num2cell(periStimEdgesStimRef(1:end-1) + binWidth / 2);
+    binNames = cellfun(@num2str, binXcell, 'UniformOutput', false);
+
     % Assign outputs
     varargout{1} = StimRanges(:, 1); % Time of stimulation onsets.
-    varargout{2} = stimRepeatNum;
+    varargout{2} = periStimEdgesStimRef;
+    varargout{3} = stimRepeatNum;
 end

@@ -32,6 +32,9 @@ function [PSTHdata, varargout] = eventFreqPSTH(VIIOdata, stimulation, varargin)
 
     % Plotting parameters:
     addParameter(p, 'plotwhere', gca, @(x) ishandle(x) && strcmp(get(x, 'Type'), 'axes')); % Handle to the axes where the plot will be drawn
+    addParameter(p, 'xlabelStr', 'Time (s)', @ischar); % X-axis label
+    addParameter(p, 'xTickAngle', 45, @isnumeric); % Angle of X-axis tick labels
+    addParameter(p, 'ylimVal', [], @isnumeric); % Angle of X-axis tick labels
 
     % Parse the inputs
     parse(p, VIIOdata, stimulation, varargin{:});
@@ -53,9 +56,11 @@ function [PSTHdata, varargout] = eventFreqPSTH(VIIOdata, stimulation, varargin)
         VIIOdata = getFilteredData(VIIOdata, pars.recFilterNames, pars.recFilterVals);
     end
 
-    % Pre-allocate the event frequency data as a cell array
+    % Pre-allocate variables
     recNum = length(VIIOdata);
     eventFreqRecCell = cell(1, recNum);
+    PSTHdata = empty_content_struct({'stim','data','dataStruct','binEdges','binNames','baseRange','recNum','recDateNum','roiNum','stimRepeatNum', 'stat'}, 1);
+    PSTHdata.stim = stimulation;
         
     % Loop through recordings and collect the event frequency
     for i = 1:recNum
@@ -85,9 +90,11 @@ function [PSTHdata, varargout] = eventFreqPSTH(VIIOdata, stimulation, varargin)
             [binEdges, binNames, stimOnsetTime, binEdgesPSTH, stimRepeatNum] = setPeriStimBinEdges(stimInfo.UnifiedStimDuration.range, pars.binWidth, ...
                 'preStimDur', pars.preStimDur, 'postStimDur', pars.postStimDur);
         end
+        PSTHdata.binEdges = binEdgesPSTH;
+        PSTHdata.binNames = binNames;
 
         % Get the middle position of the bins for plotting
-        binX = binEdges(1:end-1)+diff(binEdges)/2; % Use binEdges and binWidt to create xdata for bar plot
+        binX = binEdgesPSTH(1:end-1)+diff(binEdgesPSTH)/2; % Use binEdges and binWidt to create xdata for bar plot
 
         % Get the baseline index in the PSTH bin edges
         baselineBinIDX = binEdgesPSTH >= baseRange(1) & binEdgesPSTH < baseRange(2);
@@ -133,6 +140,9 @@ function [PSTHdata, varargout] = eventFreqPSTH(VIIOdata, stimulation, varargin)
                     end
                     if pars.normBase
                         eventFreqPSTH = eventFreqPSTH / baseFreq;
+                        ylabelStr = 'Normalized event frequency';
+                    else
+                        ylabelStr = 'Event frequency';
                     end
                 end
                 
@@ -155,7 +165,7 @@ function [PSTHdata, varargout] = eventFreqPSTH(VIIOdata, stimulation, varargin)
     eventFreqAll = [eventFreqRecCell{:}]; % A structure array with all the event frequency data. Each entry corresponds to an ROI
     
     % Calculate the number of animals, recordings, ROIs, and stimulation repeats
-    [nNum.animalNum, nNum.recNum, nNum.roiNum, nNum.stimRepeats] = getNnumber(eventFreqAll);
+    [PSTHdata.recDateNum, PSTHdata.recNum, PSTHdata.roiNum, PSTHdata.stimRepeatNum] = getNnumber(eventFreqAll);
 
     % Concatenate the event frequency data from all ROIs
     eventFreqCell = {eventFreqAll.EventFqInBins}; % collect EventFqInBins in a cell array
@@ -171,7 +181,7 @@ function [PSTHdata, varargout] = eventFreqPSTH(VIIOdata, stimulation, varargin)
     bootStrapTabCell = cell(numel(binIdxAfterBase), 1); % Create an empty cell to store the bootstrap results
     % signRankTabCell = cell(numel(binIdxAfterBase), 1); % Create an empty cell to store the bootstrap results
     for bn = 1:numel(binIdxAfterBase)
-        diff2BaseData = eventFreqMat(:, bn) - baselineDataArray;
+        diff2BaseData = eventFreqMat(:, bn) - baselineArray;
         diff2BaseStr = sprintf('bin-%d vs. baseline', binIdxAfterBase(bn));
 
         % Bootstrap
@@ -182,15 +192,27 @@ function [PSTHdata, varargout] = eventFreqPSTH(VIIOdata, stimulation, varargin)
     end
 
     % Concatenate all the bootstrap and signRank results
-    barStat(stn).bootStrapTab = vertcat(bootStrapTabCell{:});
-    barStat(stn).signRankTab = vertcat(signRankTabCell{:});
+    PSTHdata.stat = vertcat(bootStrapTabCell{:});
+    % PSTHdata.stat = vertcat(signRankTabCell{:});
 
     %% Plot the PSTH: boxplot or bar plot
     % Create a structure array for the event frequency data
-    eventFreqStruct = efArray2struct(eventFreqMat, eventFreqAll, binX);
+    PSTHdata.dataStruct = efArray2struct(eventFreqMat, eventFreqAll, binX);
 
     % Box plot of event freq in various time
-    barStat(stn).data = boxPlotOfStructData(eventFreqStruct, 'val', 'xdata', 'plotWhere', pars.plotwhere, 'xtickLabel', binNames);
+    PSTHdata.data = boxPlotOfStructData(PSTHdata.dataStruct, 'val', 'xdata', 'plotWhere', pars.plotwhere, 'xtickLabel', binNames);
+    xlabel(pars.xlabelStr);
+    xtickangle(pars.xTickAngle);
+    ylabel(ylabelStr);
+    titleStr = sprintf('%s \n[%g animals %g recordings %g cells %g stims]',...
+		stimulation, PSTHdata.recDateNum, PSTHdata.recNum, PSTHdata.roiNum, PSTHdata.stimRepeatNum); % string for the subtitle
+    title(titleStr, 'FontSize', 10)
+    if ~isempty(pars.ylimVal)
+        ylim(pars.ylimVal);
+    end
+
+    %% Assign the output variables
+    varargout{1} = pars;
 end
 
 
