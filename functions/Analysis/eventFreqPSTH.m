@@ -27,7 +27,7 @@ function [PSTHdata, varargout] = eventFreqPSTH(VIIOdata, stimulation, varargin)
     addParameter(p, 'baseStart', [], @isnumeric); % Start of baseline relative to the stimulation onset
     addParameter(p, 'baseEnd', 0, @isnumeric); % End of baseline baseline relative to the stimulation onset
     addParameter(p, 'normBase', false, @islogical); % Normalize data to baseline if true
-    addParameter(p, 'discardZeroBase', true, @islogical); % Discard the roi/stimTrial if the baseline value is zero
+    addParameter(p, 'discardZeroBase', false, @islogical); % Discard the roi/stimTrial if the baseline value is zero
     addParameter(p, 'eventTimeField', 'peak_time', @ischar); % Field name for event time stamps in VIIOdata.traces.eventProp
 
     % Plotting parameters:

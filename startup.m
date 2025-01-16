@@ -57,8 +57,23 @@ end
 % Step 5: Add the settings for ROI filter
 % ROIs in the recordings applied with various stimulations were filtered
 % depend on how they react to the stimulation.
-projCfg.roiFilter.StimTags = {'N-O-5s','AP-0.1s','N-O-5s AP-0.1s'}; % 
-projCfg.roiFilter.StimEffects = {[0 nan nan nan], [nan nan nan nan], [0 nan nan nan]}; % [ex in rb exApNO]. ex: excitation. in: inhibition. rb: rebound. exApNO: exitatory effect of AP during N-O
+projCfg.stimEffectFilters(1).stimNames = 'N-O-5s';
+projCfg.stimEffectFilters(1).filters.excitation = 0;
+projCfg.stimEffectFilters(1).filters.inhibition = nan;
+projCfg.stimEffectFilters(1).filters.rebound = nan;
+projCfg.stimEffectFilters(1).filters.NOAP = nan;
+
+projCfg.stimEffectFilters(2).stimNames = 'AP-0.1s';
+projCfg.stimEffectFilters(2).filters.excitation = nan;
+projCfg.stimEffectFilters(2).filters.inhibition = nan;
+projCfg.stimEffectFilters(2).filters.rebound = nan;
+projCfg.stimEffectFilters(2).filters.NOAP = nan;
+
+projCfg.stimEffectFilters(3).stimNames = 'N-O-5s AP-0.1s';
+projCfg.stimEffectFilters(3).filters.excitation = 0;
+projCfg.stimEffectFilters(3).filters.inhibition = nan;
+projCfg.stimEffectFilters(3).filters.rebound = nan;
+projCfg.stimEffectFilters(3).filters.NOAP = nan;
 
 % Step 6: Set up the parameters for (Generalized) Linear Mixed Model
 % analysis

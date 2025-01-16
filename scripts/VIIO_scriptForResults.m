@@ -159,7 +159,9 @@ preStimDuration = 6; % unit: second. include events happened before the onset of
 postStimDuration = 7; % unit: second. include events happened after the end of stimulations
 stimEffectDuration = 1; % unit: second. Use this to set the end for the stimulation effect range
 
-
+stimulations = {projCfg.stimEffectFilters.stimName}; % Analyze the PSTH for recordings applied with these stimulations
+roiFilterNames = {'subNuclei'};
+roiFilterVals = {'DAO', ' '}; % Filter the ROIs using these values
 
 % Create a canvas to plot the PSTH in subplots
 [f,f_rowNum,f_colNum] = fig_canvas(stim_type_num,'unit_width',plot_unit_width,'unit_height',plot_unit_height,'column_lim',2,...
