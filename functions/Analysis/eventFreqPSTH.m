@@ -12,10 +12,8 @@ function [PSTHdata, varargout] = eventFreqPSTH(VIIOdata, stimulation, varargin)
     
     % Define optional inputs
     % Filters:
-    addParameter(p, 'recFilterNames', {}, @iscell); % Name of fields in VIIOdata to filter recordings
-    addParameter(p, 'recFilterVals', {}, @(x) iscell(x)); % Values for the recFilterNames, can be logical or character
-    addParameter(p, 'roiFilterNames', {}, @iscell); % Name of fields in recording data (VIIOdata.traces) to filter ROIs
-    addParameter(p, 'roiFilterVals', {}, @(x) iscell(x)); % Values for the roiFilterNames, can be logical or character
+    addParameter(p, 'recFilters', struct('names', {}, 'values', {}), @isstruct); % Struct containing filter names and values for recordings
+    addParameter(p, 'roiFilters', struct('names', {}, 'values', {}), @isstruct); % Struct containing filter names and values for ROIs
 
     % PSTH parameters:
     addParameter(p, 'binWidth', 1, @isnumeric); % Width of each histogram bin (s) when not using customized bin edges
@@ -51,15 +49,15 @@ function [PSTHdata, varargout] = eventFreqPSTH(VIIOdata, stimulation, varargin)
     stimNameTF = strcmpi({VIIOdata.stim_name}, stimulation);
     VIIOdata = VIIOdata(stimNameTF);
 
-    % Filter recordings using recFilterNames and recFilterBool if recFilterNames is not empty
-    if ~isempty(pars.recFilterNames)
-        VIIOdata = getFilteredData(VIIOdata, pars.recFilterNames, pars.recFilterVals);
+    % Filter recordings using recFilters if not empty
+    if ~isempty(pars.recFilters)
+        VIIOdata = getFilteredData(VIIOdata, pars.recFilters);
     end
 
     % Pre-allocate variables
     recNum = length(VIIOdata);
     eventFreqRecCell = cell(1, recNum);
-    PSTHdata = empty_content_struct({'stim','data','dataStruct','binEdges','binNames','baseRange','recNum','recDateNum','roiNum','stimRepeatNum', 'stat'}, 1);
+    PSTHdata = empty_content_struct({'stim','summaryData','dataStruct','binEdges','binNames','baseRange','recNum','recDateNum','roiNum','stimRepeatNum', 'stat'}, 1);
     PSTHdata.stim = stimulation;
         
     % Loop through recordings and collect the event frequency
@@ -97,12 +95,12 @@ function [PSTHdata, varargout] = eventFreqPSTH(VIIOdata, stimulation, varargin)
         binX = binEdgesPSTH(1:end-1)+diff(binEdgesPSTH)/2; % Use binEdges and binWidt to create xdata for bar plot
 
         % Get the baseline index in the PSTH bin edges
-        baselineBinIDX = binEdgesPSTH >= baseRange(1) & binEdgesPSTH < baseRange(2);
+        baselineBinIDX = find(binEdgesPSTH >= baseRange(1) & binEdgesPSTH < baseRange(2));
 
 
-        % Filter ROIs using roiFilterNames and roiFilterBool if roiFilterNames is not empty 
-        if ~isempty(pars.roiFilterNames)
-            VIIOdata(i).traces = getFilteredData(VIIOdata(i).traces, pars.roiFilterNames, pars.roiFilterVals);
+        % Filter ROIs using roiFilters if not empty 
+        if ~isempty(pars.roiFilters)
+            VIIOdata(i).traces = getFilteredData(VIIOdata(i).traces, pars.roiFilters);
         end
         roiNum = length(VIIOdata(i).traces);
         
@@ -140,9 +138,6 @@ function [PSTHdata, varargout] = eventFreqPSTH(VIIOdata, stimulation, varargin)
                     end
                     if pars.normBase
                         eventFreqPSTH = eventFreqPSTH / baseFreq;
-                        ylabelStr = 'Normalized event frequency';
-                    else
-                        ylabelStr = 'Event frequency';
                     end
                 end
                 
@@ -157,7 +152,7 @@ function [PSTHdata, varargout] = eventFreqPSTH(VIIOdata, stimulation, varargin)
             % Store the EventFreqRoiStruct in the cell array
             eventFreqRecCell{i} = EventFreqRoiStruct;
         else
-            warning('No ROIs found in the recording: %s', VIIOdata(i).recName);
+            warning('No ROIs found in the recording: %s', VIIOdata(i).trialName);
         end
     end
 
@@ -177,11 +172,11 @@ function [PSTHdata, varargout] = eventFreqPSTH(VIIOdata, stimulation, varargin)
     baselineArray = mean(eventFreqMat(:, baselineBinIDX), 2);
 
     % Calculate the difference between every bin after the baseline to baseline
-    binIdxAfterBase = [baselineBinIDX+1 : size(eventFreqMat, 2)]; % index of bins from the first one after baseline to the end
+    binIdxAfterBase = [baselineBinIDX(end)+1 : size(eventFreqMat, 2)]; % index of bins from the first one after baseline to the end
     bootStrapTabCell = cell(numel(binIdxAfterBase), 1); % Create an empty cell to store the bootstrap results
     % signRankTabCell = cell(numel(binIdxAfterBase), 1); % Create an empty cell to store the bootstrap results
     for bn = 1:numel(binIdxAfterBase)
-        diff2BaseData = eventFreqMat(:, bn) - baselineArray;
+        diff2BaseData = eventFreqMat(:, binIdxAfterBase(bn)) - baselineArray;
         diff2BaseStr = sprintf('bin-%d vs. baseline', binIdxAfterBase(bn));
 
         % Bootstrap
@@ -200,9 +195,15 @@ function [PSTHdata, varargout] = eventFreqPSTH(VIIOdata, stimulation, varargin)
     PSTHdata.dataStruct = efArray2struct(eventFreqMat, eventFreqAll, binX);
 
     % Box plot of event freq in various time
-    PSTHdata.data = boxPlotOfStructData(PSTHdata.dataStruct, 'val', 'xdata', 'plotWhere', pars.plotwhere, 'xtickLabel', binNames);
+    PSTHdata.summaryData = boxPlotOfStructData(PSTHdata.dataStruct, 'val', 'xdata', 'plotWhere', pars.plotwhere, 'xtickLabel', binNames);
     xlabel(pars.xlabelStr);
     xtickangle(pars.xTickAngle);
+
+    if pars.normBase
+        ylabelStr = 'Normalized event frequency';
+    else
+        ylabelStr = 'Event frequency';
+    end
     ylabel(ylabelStr);
     titleStr = sprintf('%s \n[%g animals %g recordings %g cells %g stims]',...
 		stimulation, PSTHdata.recDateNum, PSTHdata.recNum, PSTHdata.roiNum, PSTHdata.stimRepeatNum); % string for the subtitle
@@ -216,17 +217,17 @@ function [PSTHdata, varargout] = eventFreqPSTH(VIIOdata, stimulation, varargin)
 end
 
 
-function filteredData = getFilteredData(structData, filterNames, filterVals)
-    % Filter VIIOdata based on filterNames and filterVals
-    % filterVals can be a logical array or a cell array of strings
+function filteredData = getFilteredData(structData, filters)
+    % Filter structData based on filters.names and filters.values
+    % filters.values can be a logical array or a cell array of strings
 
-    % Initialize filteredData as VIIOdata
+    % Initialize filteredData as structData
     filteredData = structData;
 
     % Loop through each filter name
-    for i = 1:length(filterNames)
-        filterName = filterNames{i};
-        filterVal = filterVals{i};
+    for i = 1:length(filters)
+        filterName = filters(i).names;
+        filterVal = filters(i).vals;
 
         if islogical(filterVal)
             % Apply boolean filter

@@ -153,17 +153,53 @@ roiStructSpon = filter_entries_in_structure(roiStruct, 'group',...
 % Analyze the peristimulus time histograms (PSTH) of event frequency
 close all
 
-saveFig = true; % true/false
+saveFig = false; % true/false
 saveDir = fullfile(projCfg.resultsFolder,'eventFreqPSTH');
+binWidth = 1; % unit: second. The width of the generic bins for the PSTH
 preStimDuration = 6; % unit: second. include events happened before the onset of stimulations
 postStimDuration = 7; % unit: second. include events happened after the end of stimulations
 stimEffectDuration = 1; % unit: second. Use this to set the end for the stimulation effect range
+baseStart = -preStimDuration; % unit: second. The start time of the baseline period for normalization
+baseEnd = 0; % unit: second. The end time of the baseline period for normalization
 
-stimulations = {projCfg.stimEffectFilters.stimName}; % Analyze the PSTH for recordings applied with these stimulations
-roiFilterNames = {'subNuclei'};
-roiFilterVals = {'DAO', ' '}; % Filter the ROIs using these values
+stimulations = {projCfg.stimEffectFilters.stimNames}; % Analyze the PSTH for recordings applied with these stimulations
+roiFilters = struct('names', {'subNuclei', 'subNuclei'}, 'vals', {'DAO', 'PO'});
 
-% Create a canvas to plot the PSTH in subplots
-[f,f_rowNum,f_colNum] = fig_canvas(stim_type_num,'unit_width',plot_unit_width,'unit_height',plot_unit_height,'column_lim',2,...
-	'fig_name',titleStr); % create a figure
-tlo = tiledlayout(f,f_rowNum,f_colNum);
+% Filter the ROIs with the default stimEffectFilters
+[VIIOdataStimEffectFiltered, roiNum] = filterVIIOdataWithStimEffect(VIIOdata, projCfg.stimEffectFilters);
+
+% Loop through the roiFilterVals (Subnuclei) and stimulations
+for i = 1:numel(roiFilterVals)
+	% Create a fig title
+	titleStr = ['PSTH of event frequency in ', roiFilters(i).vals, ' ROIs'];
+
+	% Create a canvas to plot the PSTH in subplots
+	[fCustmized(i),f_rowNum,f_colNum] = fig_canvas(numel(stimulations), 'column_lim',2,...
+		'fig_name', ['CustomizedBins ', titleStr]); % create a figure
+	tloCustomized = tiledlayout(fCustmized(i),f_rowNum,f_colNum);
+	sgtitle(titleStr)
+
+	[fGeneric(i),f_rowNum,f_colNum] = fig_canvas(numel(stimulations), 'column_lim',2,...
+		'fig_name', ['GenericBins ', titleStr]); % create a figure
+	tloGeneric = tiledlayout(fGeneric(i),f_rowNum,f_colNum);
+	sgtitle(titleStr)
+
+	% Loop through the stimulations
+	for j = 1:numel(stimulations)
+		% Extract the event frequency PSTH using customized bins and plot
+		axCustomized = nexttile(tloCustomized);
+		[PSTHdata, PSTHpars] = eventFreqPSTH(VIIOdataStimEffectFiltered, stimulations{j},...
+			'roiFilters', roiFilters(i),...
+			'preStimDur', preStimDuration, 'postStimDur', postStimDuration,...
+			'baseStart', baseStart, 'baseEnd', baseEnd,'normBase', true,...
+			'customizeBin', true, 'plotwhere', axCustomized);
+
+		% Extract the event frequency PSTH using generic bins and plot
+		axGeneric = nexttile(tloGeneric);
+		[PSTHdata, PSTHpars] = eventFreqPSTH(VIIOdataStimEffectFiltered, stimulations{j},...
+			'roiFilters', roiFilters(i),...
+			'preStimDur', preStimDuration, 'postStimDur', postStimDuration,...
+			'baseStart', baseStart, 'baseEnd', baseEnd,'normBase', false,...
+			'binWidth', binWidth, 'plotwhere', axGeneric);
+	end
+end
