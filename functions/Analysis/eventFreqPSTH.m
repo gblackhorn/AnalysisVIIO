@@ -2,7 +2,6 @@ function [PSTHdata, varargout] = eventFreqPSTH(VIIOdata, stimulation, varargin)
 %Collect the event frequency from recording(s) applied with the same stimulation type and plot the PSTH
 % Return the statistics of the event frequency and compare the bins of the PSTH
 
-
     % Initialize input parser
     p = inputParser;
 
@@ -34,6 +33,9 @@ function [PSTHdata, varargout] = eventFreqPSTH(VIIOdata, stimulation, varargin)
     addParameter(p, 'xTickAngle', 45, @isnumeric); % Angle of X-axis tick labels
     addParameter(p, 'ylimVal', [], @isnumeric); % Angle of X-axis tick labels
 
+    % Debugging parameter:
+    addParameter(p, 'debugMode', true, @islogical); % Enable or disable debug mode
+
     % Parse the inputs
     parse(p, VIIOdata, stimulation, varargin{:});
     pars = p.Results;
@@ -57,34 +59,41 @@ function [PSTHdata, varargout] = eventFreqPSTH(VIIOdata, stimulation, varargin)
     % Pre-allocate variables
     recNum = length(VIIOdata);
     eventFreqRecCell = cell(1, recNum);
-    PSTHdata = empty_content_struct({'stim','summaryData','dataStruct','binEdges','binNames','baseRange','recNum','recDateNum','roiNum','stimRepeatNum', 'stat'}, 1);
+    PSTHdata = empty_content_struct({'stim','summaryData','dataStruct','binEdges','binNames','baseRange', 'stimRange', 'recNum','recDateNum','roiNum','stimRepeatNum', 'stat', 'pars'}, 1);
     PSTHdata.stim = stimulation;
-        
+    PSTHdata.baseRange = baseRange;
+    
     % Loop through recordings and collect the event frequency
     for i = 1:recNum
+        if pars.debugMode
+            fprintf('Processing recording %d of %d\n', i, recNum); % Print the current iteration
+        end
+
         % Get the ranges of stimulations in the current recording
         stimInfo = VIIOdata(i).stimInfo;
+        stimDurations = stimInfo.StimDuration;
 
-        % Create 4*2 matrices for plotting stimulation shades. Use the first recording
-        if i == 1
-            stimInfoSep = stimInfo.StimDuration; % Multi-entry struct if multiple stimulations exist
-            stimShadeData = cell(size(stimInfoSep)); % Cell array to store the stimulation shade data
-            stimShadeName = cell(size(stimInfoSep)); % Cell array to store the stimulation shade names
-            for sn = 1:numel(stimInfoSep) % Go through every stimulation in the recording
-                stimShadeData{sn} = stimInfoSep(sn).patch_coor(1:4,1:2); % Get the first 4 rows for the first repeat of stimulation
-                stimShadeData{sn}(1:2,1) = stimInfoSep(sn).range_aligned(1); % Replace the first 2 x values (stim GPIO rising) with the 1st element from range_aligned
-                stimShadeData{sn}(3:4,1) = stimInfoSep(sn).range_aligned(2); % Replace the last 2 x values (stim GPIO falling) with the 2nd element from range_aligned
-                stimShadeName{sn} = stimInfoSep(sn).type; % Get the stimulation type 
-            end
+        % Add stimulation range(s) to the PSTH data. Stimulation starts from zero
+        for sn = 1:numel(stimDurations)
+            stimName = stimDurations(sn).type;
+            stimRange = stimDurations(sn).range_aligned;
+            PSTHdata.stimRange(sn).name = stimName;
+            PSTHdata.stimRange(sn).range = stimRange;
         end
-        
+
         % Set up the PSTH bin edges using customised bins or a fixed bin width
         if pars.customizeBin
+            if pars.debugMode
+                fprintf('Customizing bins for recording %d\n', i); % Print the current iteration
+            end
             % Set the peri-stim sections (edges)
             [binEdges, binNames, stimOnsetTime, binEdgesPSTH, stimRepeatNum] = customizePeriStimBinEdges(stimInfo,...
                 'preStimDuration', pars.preStimDur,'postStimDuration', pars.postStimDur,...
                 'PeriBaseRange', baseRange,'stimEffectDuration', pars.stimEffectDur,'splitLongStim', pars.splitStim);
         else
+            if pars.debugMode
+                fprintf('Setting fixed bin width for recording %d\n', i); % Print the current iteration
+            end
             [binEdges, binNames, stimOnsetTime, binEdgesPSTH, stimRepeatNum] = setPeriStimBinEdges(stimInfo.UnifiedStimDuration.range, pars.binWidth, ...
                 'preStimDur', pars.preStimDur, 'postStimDur', pars.postStimDur);
         end
@@ -208,14 +217,12 @@ function [PSTHdata, varargout] = eventFreqPSTH(VIIOdata, stimulation, varargin)
     titleStr = sprintf('%s \n[%g animals %g recordings %g cells %g stims]',...
 		stimulation, PSTHdata.recDateNum, PSTHdata.recNum, PSTHdata.roiNum, PSTHdata.stimRepeatNum); % string for the subtitle
     title(titleStr, 'FontSize', 10)
-    if ~isempty(pars.ylimVal)
+    if (~isempty(pars.ylimVal))
         ylim(pars.ylimVal);
     end
 
-    %% Assign the output variables
-    varargout{1} = pars;
+    PSTHdata.pars = pars;
 end
-
 
 function filteredData = getFilteredData(structData, filters)
     % Filter structData based on filters.names and filters.values
@@ -241,7 +248,6 @@ function filteredData = getFilteredData(structData, filters)
     end
 end
 
-
 function [animalNum, recNum, roiNum, stimRepeats] = getNnumber(eventFreqAll)
     % Extract the n numbers from the event frequency data
     % eventFreqAll.recNames contains the recording names in the format '(\d{8}-\d{6})'
@@ -264,9 +270,8 @@ function [animalNum, recNum, roiNum, stimRepeats] = getNnumber(eventFreqAll)
 	stimRepeats = sum([eventFreqAll.stimNum]);
 end
 
-
 function efStruct = efArray2struct(ef, EventFreqInBins, xdata)
-	% Convert the ef double array to a structure var for GLMM analysis and plot
+	% Convert the ef double array to a structure var for stat analysis and plot
 	% Borrow 'TrialNames', 'roiNames', 'subNuclei', and 'stimNum' from struct var 'EventFreqInBins'
 	% xdata is used to tag various columns of ef data
 

@@ -39,7 +39,7 @@ function [filteredVIIOdata, varargout] = filterVIIOdataWithStimEffect(VIIOdata, 
 
     % Required input
     addRequired(p, 'VIIOdata', @(x) isstruct(x) && isfield(x, 'traces'));
-    addRequired(p, 'stimEffectFilters', @(x) isstruct(x) && all(isfield(x, {'stimName', 'filters'})));
+    addRequired(p, 'stimEffectFilters', @(x) isstruct(x) && all(isfield(x, {'stimNames', 'filters'})));
 
     % Optional parameters
 
@@ -51,7 +51,7 @@ function [filteredVIIOdata, varargout] = filterVIIOdataWithStimEffect(VIIOdata, 
     stimEffectFilters = p.Results.stimEffectFilters;
 
     % Extract stimulation names and filters
-    stimNames = {stimEffectFilters.stimName};
+    stimNames = {stimEffectFilters.stimNames};
     stimFilters = {stimEffectFilters.filters};
 
     % Initialize output variables

@@ -140,7 +140,8 @@ function [periStimEdges, binNames, stimStartSecIDX] = setSingleStimEdges(stimDur
 
         % Assign the first three bin names: baseline, preStim, firstStim
         % binNames = cell(1, (sectionEdgesNum-1));
-        binNames = defaultBinNames(1:3);
+        defaultBinNamesCell = {defaultBinNames.name};
+        binNames = defaultBinNamesCell(1:3);
 
         periStimEdges(:,4) = stimDurationStruct(stimStartSortIDX(1)).range(:,1) + stimEffectDuration;
         binNames{4} = defaultBinNames(9).name;

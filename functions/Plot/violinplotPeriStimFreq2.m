@@ -169,8 +169,8 @@ end
 
 
 function [violinDataNew,varargout] = addFieldCompatibleStimName(violinData)
-    oldNewStr = {{'og-5s','OG'},...
-        {'ap-0.1s','AP'}};
+    oldNewStr = {{'N-O-5s','N-O'},...
+        {'AP-0.1s','AP'}};
     blankRep = ''; % replacement for blank
 
     violinDataNew = violinData;
@@ -189,11 +189,3 @@ function [violinDataNew,varargout] = addFieldCompatibleStimName(violinData)
     % output a cell containing the modified stim names compatible with field name
     varargout{1} = {violinDataNew.stimMod};
 end
-
-% function customizeYAxis(gcaHandle, yTickInterval)
-%     % Customize y-axis ticks and labels based on the provided interval
-%     yLimits = ylim(gcaHandle);
-%     yTicks = floor(yLimits(1)/yTickInterval)*yTickInterval : yTickInterval : ceil(yLimits(2)/yTickInterval)*yTickInterval;
-%     set(gcaHandle, 'YTick', yTicks);
-%     set(gcaHandle, 'YTickLabel', arrayfun(@num2str, yTicks, 'UniformOutput', false));
-% end
