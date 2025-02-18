@@ -40,8 +40,8 @@ function [groupedEvent, varargout] = extractAndGroupEvents(caImgData, groupField
 
     % Optional parameters
     addParameter(p, 'filterROIs', false, @islogical);
-    addParameter(p, 'filterROIsStimTags', {}, @iscell);
-    addParameter(p, 'filterROIsStimEffects', {}, @iscell);
+    addParameter(p, 'stimEffectFilters', {}, @isstruct);
+    % addParameter(p, 'filterROIsStimEffects', {}, @iscell);
     addParameter(p, 'entry', 'event', @ischar);
     addParameter(p, 'separateSpon', false, @islogical);
     addParameter(p, 'discardSpon', false, @islogical);
@@ -54,22 +54,25 @@ function [groupedEvent, varargout] = extractAndGroupEvents(caImgData, groupField
 
     % Parse inputs
     parse(p, caImgData, groupField, varargin{:});
-    params = p.Results;
+    pars = p.Results;
 
     %% Filter ROIs (Optional)
-    if params.filterROIs
-        caImgData = Filter_AlignedDataTraces_withStimEffect_multiTrial(caImgData, ...
-            'stim_names', params.filterROIsStimTags, 'filters', params.filterROIsStimEffects);
+    if pars.filterROIs
+        % caImgData = Filter_AlignedDataTraces_withStimEffect_multiTrial(caImgData, ...
+        %     'stim_names', pars.filterROIsStimTags, 'filters', pars.filterROIsStimEffects);
+
+        % Filter the ROIs with the default stimEffectFilters
+        caImgData = filterVIIOdataWithStimEffect(caImgData, pars.stimEffectFilters);
     end
 
     %% Extract Event Properties
-    eventPropAll = collect_event_prop(caImgData, 'style', params.entry);
+    eventPropAll = collect_event_prop(caImgData, 'style', pars.entry);
 
     % Mark OG-triggered events if required
-    if params.markEXog
-        idx_check = cell(1, numel(params.ogTags));
-        for n = 1:numel(params.ogTags)
-            [~, idx_check{n}] = filter_structData(eventPropAll, 'stim_name', params.ogTags{n}, []);
+    if pars.markEXog
+        idx_check = cell(1, numel(pars.ogTags));
+        for n = 1:numel(pars.ogTags)
+            [~, idx_check{n}] = filter_structData(eventPropAll, 'stim_name', pars.ogTags{n}, []);
         end
         idxAll_check = [idx_check{:}];
         eventProp_check = eventPropAll(idxAll_check);
@@ -85,21 +88,21 @@ function [groupedEvent, varargout] = extractAndGroupEvents(caImgData, groupField
     end
 
     % Normalize Event Properties
-    eventPropAll = norm_eventProp_with_spon(eventPropAll, 'entry', params.entry, 'discardSpon', params.discardSpon);
+    eventPropAll = norm_eventProp_with_spon(eventPropAll, 'entry', pars.entry, 'discardSpon', pars.discardSpon);
 
     % Modify Event Type Names
-    if params.modifyEventTypeName
-        eventPropAll = mod_cat_name(eventPropAll, 'dis_extra', true, 'separateSpon', params.separateSpon);
+    if pars.modifyEventTypeName
+        eventPropAll = mod_cat_name(eventPropAll, 'dis_extra', true, 'separateSpon', pars.separateSpon);
     end
 
     %% Group Events
     [groupedEvent, groupedEventSetting] = group_event_info_multi_category(eventPropAll, ...
-        'category_names', params.groupField, 'debugMode', params.debugMode);
+        'category_names', pars.groupField, 'debugMode', pars.debugMode);
 
     %% Add Group Metrics
     for gn = 1:numel(groupedEvent)
         groupName = groupedEvent(gn).group;
-        if params.debugMode
+        if pars.debugMode
             fprintf('[addGroupMetrics] group (%d/%d): %s\n', gn, numel(groupedEvent), groupName);
         end
         [TrialRoiList, recNum, animalNum, roiNum, eventNum] = get_roiNum_from_eventProp(groupedEvent(gn).event_info);
@@ -111,7 +114,7 @@ function [groupedEvent, varargout] = extractAndGroupEvents(caImgData, groupField
 
 
         % Add fovCount if entry is 'roi'
-        if strcmp(params.entry, 'roi')
+        if strcmp(pars.entry, 'roi')
             EventInfo = groupedEvent(gn).event_info;
             fovIDs = {EventInfo.fovID};
             roiNum = numel(fovIDs);
@@ -129,16 +132,16 @@ function [groupedEvent, varargout] = extractAndGroupEvents(caImgData, groupField
 
             % if ~contains(groupName, 'spon') && ~contains(groupName, 'varied')
             %     [groupedEvent(gn).eventPb, groupedEvent(gn).eventPbList] = ...
-            %         analyze_roi_event_possibility(groupedEvent(gn).event_info, 'debugMode', params.debugMode);
+            %         analyze_roi_event_possibility(groupedEvent(gn).event_info, 'debugMode', pars.debugMode);
             % end
         end
     end
 
     %% Sort Groups
-    groupedEvent = sort_struct_with_str(groupedEvent, 'group', params.sortOrder, ...
-        'strCells_plus', params.sortOrderPlus);
+    groupedEvent = sort_struct_with_str(groupedEvent, 'group', pars.sortOrder, ...
+        'strCells_plus', pars.sortOrderPlus);
 
-    groupedEventSetting.event_type = params.entry;
+    groupedEventSetting.event_type = pars.entry;
     groupedEventSetting.TrialRoiList = get_roiNum_from_eventProp_fieldgroup(eventPropAll, 'stim_name');
 
     varargout{1} = eventPropAll;

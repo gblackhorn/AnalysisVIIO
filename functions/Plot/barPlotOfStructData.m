@@ -94,7 +94,7 @@ function [barInfo, varargout] = barPlotOfStructData(structData, valField, groupF
     nGroups = numel(uniqueGroups);
 
     % Creat barInfo and calculate mean, std, and ste for plotting
-    barInfoDataFields = {'groupIDX', 'group', 'groupData', 'meanVal', 'medianVal', 'stdVal', 'steVal', 'nNum'};
+    barInfoDataFields = {'groupIDX', 'group', 'groupData', 'meanVal', 'medianVal', 'stdVal', 'steVal', 'min', 'max', 'nNum'};
     barInfo = empty_content_struct(barInfoDataFields,nGroups);
 
     % Validate data and plot
@@ -108,6 +108,8 @@ function [barInfo, varargout] = barPlotOfStructData(structData, valField, groupF
             barInfo(i).medianVal = median(barInfo(i).groupData, "omitnan"); 
             barInfo(i).stdVal = std(barInfo(i).groupData, "omitnan");
             barInfo(i).steVal = ste(barInfo(i).groupData, 'omitnan', true);
+            barInfo(i).min = min(barInfo(i).groupData, [], 'omitnan');
+            barInfo(i).max = max(barInfo(i).groupData, [], 'omitnan');
             barInfo(i).nNum = sum(~isnan(barInfo(i).groupData));
         end
 

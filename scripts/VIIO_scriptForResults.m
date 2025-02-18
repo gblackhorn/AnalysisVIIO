@@ -100,7 +100,7 @@ for m = 1:numel(sponSepTF)
 
 		% Group events
 		[eventStruct.(sponGroupFieldName).(eventStructFields{n})] = extractAndGroupEvents(VIIOdata, groupFields{n},...
-			'filterROIs',filterROIs,'filterROIsStimTags',projCfg.roiFilter.StimTags,'filterROIsStimEffects',projCfg.roiFilter.StimEffects,...
+			'filterROIs',filterROIs,'stimEffectFilters',projCfg.stimEffectFilters,...
 			'entry', 'event', 'separateSpon', sponSepTF(m), 'modifyEventTypeName', true);
 
 		% Setup the comparison types, GLMM parameters for analysis and plots
@@ -121,7 +121,7 @@ end
 % Extract frequency and interval of spon events in ROIs and analyze them
 % Settings for plots
 close all
-saveFig = true; % true/false
+saveFig = false; % true/false
 saveDir = fullfile(projCfg.resultsFolder,'SponFreq');
 roiGroupFields = {'peak_category','subNuclei'}; % Group ROI entries using these fields
 roiPropNames = {'sponfq','sponInterval','cv2'}; % Properties to by analyzed
@@ -130,13 +130,15 @@ dataDist = 'posSkewed'; % Setup data distribution for GLMM fitting
 % GLMM analysis settings
 mmModel = 'GLMM';
 
-% Setup the filters to exclude the ROIs showing the excitatory response to optogenetic activation of N-O terminals
-filterROIs = true; % true/false. If true, screen ROIs using the settings below
+% % Setup the filters to exclude the ROIs showing the excitatory response to optogenetic activation of N-O terminals
+% filterROIs = true; % true/false. If true, screen ROIs using the settings below
+
+% Filter the ROIs with the default stimEffectFilters
+[VIIOdataStimEffectFiltered, roiNum] = filterVIIOdataWithStimEffect(VIIOdata, projCfg.stimEffectFilters);
+totalSponDuration = sumSponDurationAllNeurons(VIIOdataStimEffectFiltered);
 
 % Group ROI
-[roiStruct] = extractAndGroupEvents(projCfg.VIIOdata, roiGroupFields,...
-	'filterROIs',filterROIs,'filterROIsStimTags', projCfg.roiFilter.StimTags,...
-	'filterROIsStimEffects',projCfg.roiFilter.StimEffects,...
+[roiStruct] = extractAndGroupEvents(VIIOdataStimEffectFiltered, roiGroupFields,...
 	'entry', 'roi', 'modifyEventTypeName', true);
 
 % Keep spon groups
