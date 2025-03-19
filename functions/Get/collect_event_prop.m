@@ -1,4 +1,4 @@
-function [eventProp_all, varargout] = collect_event_prop(alignedData, varargin)
+ function [eventProp_all, varargout] = collect_event_prop(alignedData, varargin)
     % COLLECT_EVENT_PROP Return the event properties from all ROIs and all trials stored in alignedData
     %   alignedData is the output from get_event_trace_allTrials or get_event_trace_trial
     %   [eventProp_all, varargout] = collect_event_prop(alignedData, 'style', 'roi', 'debug_mode', true)
@@ -71,7 +71,8 @@ function [eventProp_all, varargout] = collect_event_prop(alignedData, varargin)
         end
     end
     % Combine event properties from all trials
-    eventProp_all = [eventProp_all_cell{:}];
+    % eventProp_all = [eventProp_all_cell{:}];
+    eventProp_all = combineStructsByCommonFields(eventProp_all_cell);
 
     % if modifyStimName
     % %     % cat_setting.cat_type = 'stim_name';

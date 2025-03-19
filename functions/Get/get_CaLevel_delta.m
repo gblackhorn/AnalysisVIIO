@@ -33,125 +33,146 @@ function [varargout] = get_CaLevel_delta(stimRange,timeInfo,roiTrace,varargin)
 	end	
 
 	%% Content
-	stimRange(:,1) = stimRange(:,1)-stim_time_error; 
-	stimRange(:,2) = stimRange(:,2)+stim_time_error; %
-
-	repeatNum = size(stimRange,1);
+	% Calculate the recording frequency
 	freq = round(1/(timeInfo(10)-timeInfo(9))); % recording frequency
-	stimDur = stimRange(1,2)-stimRange(1,1); % unit: second
 
-	datapointNum_stim = round(stimDur*freq);
-	datapointNum_base = round(base_timeRange*freq);
-	datapointNum_postStim = round(postStim_timeRange*freq);
-	datapointNum = datapointNum_base+datapointNum_stim+datapointNum_postStim;
-	alignedTrace_raw = NaN(datapointNum, repeatNum);
-	alignedTrace_yAlign = NaN(datapointNum, repeatNum); % subtract mean value of baseline (baseVal)
+	if ~isempty(stimRange)
 
-	[stimOnset,stimOnset_loc] = find_closest_in_array(stimRange(:,1), timeInfo); 
+		stimRange(:,1) = stimRange(:,1)-stim_time_error; 
+		stimRange(:,2) = stimRange(:,2)+stim_time_error; %
 
-	% idx in roiTrace
-	data_start = stimOnset_loc-datapointNum_base; 
-	data_end = stimOnset_loc+datapointNum_stim-1+datapointNum_postStim; 
+		repeatNum = size(stimRange,1);
+		stimDur = stimRange(1,2)-stimRange(1,1); % unit: second
 
-	% idx of data in aligned traces
-	range_base = [1,datapointNum_base];
-	range_stim = [(datapointNum_base+1),(datapointNum_base+datapointNum_stim)];
-	range_postStim = [(range_stim(2)+1),(range_stim(2)-1+datapointNum_postStim)];
+		datapointNum_stim = round(stimDur*freq);
+		datapointNum_base = round(base_timeRange*freq);
+		datapointNum_postStim = round(postStim_timeRange*freq);
+		datapointNum = datapointNum_base+datapointNum_stim+datapointNum_postStim;
+		alignedTrace_raw = NaN(datapointNum, repeatNum);
+		alignedTrace_yAlign = NaN(datapointNum, repeatNum); % subtract mean value of baseline (baseVal)
 
-	% use specific stimulation section
-	if stim_section % && exist('ss_range', 'var')
-		if length(ss_range) == 1 % use the last "ss_range" second(s)
-			if ss_range > stimDur
-				ss_range = stimDur;
-			end 
-			pNum = round(ss_range*freq); % data point number
-			range_stimPart = [range_stim(2)-pNum+1, range_stim(2)]; % part of the data during stimulation used to calculate the fluorescence level
-		elseif length(ss_range) == 2
-			if ss_range(1)>=stimDur || (ss_range(2)-ss_range(1))>=stimDur
-				range_stimPart = range_stim;
-			elseif ss_range(2)>=stimDur
-				range_stimPart(1) = range_stim(1)+ss_range(1)*freq-1;
-				range_stimPart(2) = range_stim(2);
-			else
-				range_stimPart(1) = range_stim(1)+ss_range(1)*freq-1;
-				range_stimPart(2) = range_stim(1)+ss_range(2)*freq-1;
+		[stimOnset,stimOnset_loc] = find_closest_in_array(stimRange(:,1), timeInfo); 
+
+		% idx in roiTrace
+		data_start = stimOnset_loc-datapointNum_base; 
+		data_end = stimOnset_loc+datapointNum_stim-1+datapointNum_postStim; 
+
+		% idx of data in aligned traces
+		range_base = [1,datapointNum_base];
+		range_stim = [(datapointNum_base+1),(datapointNum_base+datapointNum_stim)];
+		range_postStim = [(range_stim(2)+1),(range_stim(2)-1+datapointNum_postStim)];
+
+		% use specific stimulation section
+		if stim_section % && exist('ss_range', 'var')
+			if length(ss_range) == 1 % use the last "ss_range" second(s)
+				if ss_range > stimDur
+					ss_range = stimDur;
+				end 
+				pNum = round(ss_range*freq); % data point number
+				range_stimPart = [range_stim(2)-pNum+1, range_stim(2)]; % part of the data during stimulation used to calculate the fluorescence level
+			elseif length(ss_range) == 2
+				if ss_range(1)>=stimDur || (ss_range(2)-ss_range(1))>=stimDur
+					range_stimPart = range_stim;
+				elseif ss_range(2)>=stimDur
+					range_stimPart(1) = range_stim(1)+ss_range(1)*freq-1;
+					range_stimPart(2) = range_stim(2);
+				else
+					range_stimPart(1) = range_stim(1)+ss_range(1)*freq-1;
+					range_stimPart(2) = range_stim(1)+ss_range(2)*freq-1;
+				end
 			end
-		end
-	else
-		range_stimPart = range_stim;
-	end
-
-	% mean value during/around one stimulation repeat
-	meanVal.baseVal = NaN(1, repeatNum);
-	meanVal.stimVal = NaN(1, repeatNum);
-	% meanVal.stimVal_norm = NaN(1, repeatNum);
-	meanVal.stimVal_delta = NaN(1, repeatNum); % stimVal-baseVal
-	meanVal.stimMinVal = NaN(1, repeatNum);
-	% meanVal.stimMinVal_norm = NaN(1, repeatNum);
-	meanVal.stimMinVal_delta = NaN(1, repeatNum);
-	meanVal.postStimVal = NaN(1, repeatNum); 
-
-	for rn = 1:repeatNum
-		alignedTrace_raw(:,rn) = roiTrace(data_start(rn):data_end(rn));
-		meanVal.baseVal(rn) = mean(alignedTrace_raw(range_base(1):range_base(2),rn)); 
-		meanVal.baseValstd(rn) = std(alignedTrace_raw(range_base(1):range_base(2),rn)); 
-		meanVal.stimVal(rn) = mean(alignedTrace_raw(range_stimPart(1):range_stimPart(2),rn)); 
-		% meanVal.stimVal_norm(rn) = meanVal.stimVal(rn)/meanVal.baseVal(rn); 
-		meanVal.stimVal_delta(rn) = meanVal.stimVal(rn)-meanVal.baseVal(rn); 
-		meanVal.stimMinVal(rn) = min(alignedTrace_raw(range_stimPart(1):range_stimPart(2),rn)); 
-		% meanVal.stimMinVal_norm(rn) = meanVal.stimMinVal(rn)/meanVal.baseVal(rn); 
-		meanVal.stimMinVal_delta(rn) = meanVal.stimMinVal(rn)-meanVal.baseVal(rn); 
-		meanVal.postStimVal(rn) = mean(alignedTrace_raw(range_postStim(1):range_postStim(2),rn)); 
-		alignedTrace_yAlign(:,rn) = alignedTrace_raw(:,rn)-meanVal.baseVal(rn);
-
-		if meanVal.stimVal(rn) < meanVal.baseVal(rn)-meanVal.baseValstd(rn)*2 % delta is beyond the base_mean-2*base_std
-			meanVal.meanVal_CaDecline(rn) = true; % calcium level declines
 		else
-			meanVal.meanVal_CaDecline(rn) = false;
+			range_stimPart = range_stim;
 		end
 
-	end
+		% mean value during/around one stimulation repeat
+		meanVal.baseVal = NaN(1, repeatNum);
+		meanVal.stimVal = NaN(1, repeatNum);
+		% meanVal.stimVal_norm = NaN(1, repeatNum);
+		meanVal.stimVal_delta = NaN(1, repeatNum); % stimVal-baseVal
+		meanVal.stimMinVal = NaN(1, repeatNum);
+		% meanVal.stimMinVal_norm = NaN(1, repeatNum);
+		meanVal.stimMinVal_delta = NaN(1, repeatNum);
+		meanVal.postStimVal = NaN(1, repeatNum); 
 
-	% average value of all stim repeats
-	% CaLevel.Change_norm = mean(meanVal.stimVal_norm); 
-	CaLevel.delta = mean(meanVal.stimVal_delta);
-	% CaLevel.delta_data = meanVal.stimVal_delta;
-	delta_data = nan(repeatNum,2);
-	delta_data(:,1) = meanVal.baseVal(:);
-	delta_data(:,2) = meanVal.stimVal(:);
-	CaLevel.delta_data = delta_data;
-	% CaLevel.delta_data{1} = meanVal.baseVal-mean(meanVal.baseVal);
-	% CaLevel.delta_data{2} = meanVal.stimVal-mean(meanVal.baseVal);
-	CaLevel.meanBase = mean(CaLevel.delta_data(:,1));
-	CaLevel.meanStim = mean(CaLevel.delta_data(:,2));
+		for rn = 1:repeatNum
+			alignedTrace_raw(:,rn) = roiTrace(data_start(rn):data_end(rn));
+			meanVal.baseVal(rn) = mean(alignedTrace_raw(range_base(1):range_base(2),rn)); 
+			meanVal.baseValstd(rn) = std(alignedTrace_raw(range_base(1):range_base(2),rn)); 
+			meanVal.stimVal(rn) = mean(alignedTrace_raw(range_stimPart(1):range_stimPart(2),rn)); 
+			% meanVal.stimVal_norm(rn) = meanVal.stimVal(rn)/meanVal.baseVal(rn); 
+			meanVal.stimVal_delta(rn) = meanVal.stimVal(rn)-meanVal.baseVal(rn); 
+			meanVal.stimMinVal(rn) = min(alignedTrace_raw(range_stimPart(1):range_stimPart(2),rn)); 
+			% meanVal.stimMinVal_norm(rn) = meanVal.stimMinVal(rn)/meanVal.baseVal(rn); 
+			meanVal.stimMinVal_delta(rn) = meanVal.stimMinVal(rn)-meanVal.baseVal(rn); 
+			meanVal.postStimVal(rn) = mean(alignedTrace_raw(range_postStim(1):range_postStim(2),rn)); 
+			alignedTrace_yAlign(:,rn) = alignedTrace_raw(:,rn)-meanVal.baseVal(rn);
 
-	% average value of all stim repeats (use the minimum value in the stim range)
-	% CaLevel.ChangeMin_norm = mean(meanVal.stimMinVal_norm); % 
-	CaLevel.mean_delta = mean(meanVal.stimMinVal_delta);
-	CaLevel.mean_delta_data = meanVal.stimMinVal_delta;
-	CaLevel.mean_data = meanVal.stimMinVal; % min values of calcium during each stimulation
+			if meanVal.stimVal(rn) < meanVal.baseVal(rn)-meanVal.baseValstd(rn)*2 % delta is beyond the base_mean-2*base_std
+				meanVal.meanVal_CaDecline(rn) = true; % calcium level declines
+			else
+				meanVal.meanVal_CaDecline(rn) = false;
+			end
+
+		end
+
+		% average value of all stim repeats
+		% CaLevel.Change_norm = mean(meanVal.stimVal_norm); 
+		CaLevel.delta = mean(meanVal.stimVal_delta);
+		% CaLevel.delta_data = meanVal.stimVal_delta;
+		delta_data = nan(repeatNum,2);
+		delta_data(:,1) = meanVal.baseVal(:);
+		delta_data(:,2) = meanVal.stimVal(:);
+		CaLevel.delta_data = delta_data;
+		% CaLevel.delta_data{1} = meanVal.baseVal-mean(meanVal.baseVal);
+		% CaLevel.delta_data{2} = meanVal.stimVal-mean(meanVal.baseVal);
+		CaLevel.meanBase = mean(CaLevel.delta_data(:,1));
+		CaLevel.meanStim = mean(CaLevel.delta_data(:,2));
+
+		% average value of all stim repeats (use the minimum value in the stim range)
+		% CaLevel.ChangeMin_norm = mean(meanVal.stimMinVal_norm); % 
+		CaLevel.mean_delta = mean(meanVal.stimMinVal_delta);
+		CaLevel.mean_delta_data = meanVal.stimMinVal_delta;
+		CaLevel.mean_data = meanVal.stimMinVal; % min values of calcium during each stimulation
 
 
-	CaDecline_num = numel(find(meanVal.meanVal_CaDecline==true));
-	if CaDecline_num/repeatNum>=decline_per
-		CaLevel.decline = true;
+		CaDecline_num = numel(find(meanVal.meanVal_CaDecline==true));
+		if CaDecline_num/repeatNum>=decline_per
+			CaLevel.decline = true;
+		else
+			CaLevel.decline = false;
+		end
+
+		alignedTrace.timeInfo = [(0-datapointNum_base/freq):1/freq:(datapointNum_stim-1+datapointNum_postStim)/freq]';
+		alignedTrace.raw = alignedTrace_raw;
+		alignedTrace.yAlign = NaN; % subtrace baseVal(s) from trace(s). 
 	else
-		CaLevel.decline = false;
+		CaLevel.delta = NaN;
+		CaLevel.mean_delta = NaN;
+		CaLevel.decline = NaN;
+		CaLevel.meanBase = NaN;
+		CaLevel.meanStim = NaN;
+		CaLevel.mean_data = NaN;
+		CaLevel.delta_data = NaN;
+		CaLevel.mean_delta_data = NaN;
+		
+		base_timeRange = NaN;
+		stimDur = NaN;
+		postStim_timeRange = NaN;
+		range_base = NaN;
+		range_stimPart = NaN;
+		range_postStim = NaN;
+
+		alignedTrace.timeInfo = timeInfo;
+		alignedTrace.raw = roiTrace;
+		alignedTrace.yAlign = roiTrace;
 	end
-	% if ~isempty(find(meanVal.meanVal_CaDecline==true)) % if significant calcium decline can be found 
-	% 	CaLevel.decline = true;
-	% else
-	% 	CaLevel.decline = false;
-	% end
 
 	CaLevel.stimInfo.freq = freq;
 	CaLevel.stimInfo.baseDur = base_timeRange;
 	CaLevel.stimInfo.stimDur = stimDur;
 	CaLevel.stimInfo.postStimDur = postStim_timeRange;
 
-	alignedTrace.timeInfo = [(0-datapointNum_base/freq):1/freq:(datapointNum_stim-1+datapointNum_postStim)/freq]';
-	alignedTrace.raw = alignedTrace_raw;
-	alignedTrace.yAlign = alignedTrace_yAlign; % subtrace baseVal(s) from trace(s). 
 
 	% data in index ranges are used for calculating the calcium level
 	CaLevel_cal_range.rang_base = range_base;

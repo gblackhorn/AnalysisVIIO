@@ -273,6 +273,10 @@ function [alignedData_allTrials,varargout] = get_event_trace_allTrials(allTrials
 
 				% Add the std of highpass filtered trace
 				alignedData.traces(n).hpStd = event_spec_fulltable{'highpass_std', roiName}{:};
+				
+				% Add boolean tags to event properties
+				[alignedData.traces(n).eventProp,newFieldName,NFNtag] = add_tfTag_to_eventProp(alignedData.traces(n).eventProp,...
+					'peak_category','trig','newFieldName','stimTrig');
 
 				% modify the names of peak categories 
 				if ~isempty(alignedData.traces(n).eventProp) && mod_pcn 
@@ -283,34 +287,35 @@ function [alignedData_allTrials,varargout] = get_event_trace_allTrials(allTrials
 					% Set the unified stimulation range to empty, if stimulation is not applied
 					if ~strcmpi(alignedData.stimInfo,'NA');
 						unifiedStimRange = alignedData.stimInfo.UnifiedStimDuration.range;
+
+						% Create tag for stimulation related events
+						StimTags = CreateStimTagForEvents(unifiedStimRange,...
+							[alignedData.traces(n).eventProp.(eventTimeType)],'EventCat',{alignedData.traces(n).eventProp.peak_category},...
+							'StimType',alignedData.stimInfo.UnifiedStimDuration.type,...
+							'SkipTag_keyword','spon','NoTag_char',''); % Create stimulation tags for each events for further sorting
+						[alignedData.traces(n).eventProp.stim_tags] = StimTags{:}; % Add stimulation tags
+
+
+						% [alignedData.traces(n).eventProp] = mod_cat_name(alignedData.traces(n).eventProp,'cat_setting',cat_setting,'dis_extra',false);
+						[alignedData.traces(n).eventProp] = add_eventBaseDiff_to_eventProp(alignedData.traces(n).eventProp,...
+							combine_stimRange,fullTime,roiTraceData);
+
+
+
+						[alignedData.traces(n).eventProp] = add_riseDelay_to_eventProp(alignedData.traces(n).eventProp,...
+							combine_stimRange,'eventType',eventTimeType,'errCali',0,'stimEventCatPairs',stimEventCatPairs);
+
+						% Get the possibility of stimulation related events: spike_num/stimulation number
+						% Each category of spikes is calculated separately.
+						eventProp_stim = dis_struct_entry(alignedData.traces(n).eventProp,'peak_category',...
+							'spon','discard');
+						[alignedData.traces(n).stimEvent_possi] = get_stimEvent_possibility({eventProp_stim.peak_category},...
+							alignedData.stimInfo.UnifiedStimDuration.repeats);
 					else
 						unifiedStimRange = [];
 					end
 
-					% Create tag for stimulation related events
-					StimTags = CreateStimTagForEvents(unifiedStimRange,...
-						[alignedData.traces(n).eventProp.(eventTimeType)],'EventCat',{alignedData.traces(n).eventProp.peak_category},...
-						'StimType',alignedData.stimInfo.UnifiedStimDuration.type,...
-						'SkipTag_keyword','spon','NoTag_char',''); % Create stimulation tags for each events for further sorting
-					[alignedData.traces(n).eventProp.stim_tags] = StimTags{:}; % Add stimulation tags
 
-
-					% [alignedData.traces(n).eventProp] = mod_cat_name(alignedData.traces(n).eventProp,'cat_setting',cat_setting,'dis_extra',false);
-					[alignedData.traces(n).eventProp] = add_eventBaseDiff_to_eventProp(alignedData.traces(n).eventProp,...
-						combine_stimRange,fullTime,roiTraceData);
-					[alignedData.traces(n).eventProp,newFieldName,NFNtag] = add_tfTag_to_eventProp(alignedData.traces(n).eventProp,...
-						'peak_category','trig','newFieldName','stimTrig');
-
-
-					[alignedData.traces(n).eventProp] = add_riseDelay_to_eventProp(alignedData.traces(n).eventProp,...
-						combine_stimRange,'eventType',eventTimeType,'errCali',0,'stimEventCatPairs',stimEventCatPairs);
-
-					% Get the possibility of stimulation related events: spike_num/stimulation number
-					% Each category of spikes is calculated separately.
-					eventProp_stim = dis_struct_entry(alignedData.traces(n).eventProp,'peak_category',...
-						'spon','discard');
-					[alignedData.traces(n).stimEvent_possi] = get_stimEvent_possibility({eventProp_stim.peak_category},...
-						alignedData.stimInfo.UnifiedStimDuration.repeats);
 				end
 
 				% get the event number and frequency (spontaneous events and event during stimulation)
@@ -331,7 +336,7 @@ function [alignedData_allTrials,varargout] = get_event_trace_allTrials(allTrials
 				[sponfq,sponInterval,sponIdx,sponEventTime,sponEventNum,~,allIntervals] = get_event_freq_interval(events_time,sponWin);
 				[cv2,cv2Vector] = calculateCV2(events_time,stimWin);
 
-				% Get the effect of stimulation on each ROI
+				% Get the stimulation effect on each ROI
 				[alignedData.traces(n).stimEffect] = get_stimEffect(fullTime,roiTraceData,combine_stimRange,...
 					{alignedData.traces(n).eventProp.peak_category},'ex_eventCat',ex_eventCat,'exAP_eventCat',exAP_eventCat,...
 					'rb_eventCat',rb_eventCat,'in_thresh_stdScale',in_thresh_stdScale,...
@@ -399,16 +404,20 @@ function [alignedData_allTrials,varargout] = get_event_trace_allTrials(allTrials
 					tauStimIDX = [];
 					tauVal = [];
 				end
-				for en = 1:numel(decay_eventCat)
-					alignedData.traces(n).eventProp = add_tau_for_specificEvents(alignedData.traces(n).eventProp,...
-						decay_eventCat{en},combine_stimRange(:,2),tauStimIDX,tauVal);
-					alignedData.traces(n).eventProp = add_caLevelDelta_for_specificEvents(alignedData.traces(n).eventProp,...
-						decay_eventCat{en},combine_stimRange(:,2),alignedData.traces(n).CaLevelMinDeltaData,...
-						'denomVal', alignedData.traces(n).hpStd);
-					alignedData.traces(n).eventProp = add_caLevelDelta_for_specificEvents(alignedData.traces(n).eventProp,...
-						decay_eventCat{en},combine_stimRange(:,2),alignedData.traces(n).CaLevelMinData,...
-						'newFieldName','caLevel');
-				end
+
+				% Add tau and caLevelDelta to the events incuded in decay_eventCat
+				if ~strcmpi(alignedData.stimInfo,'NA');
+					for en = 1:numel(decay_eventCat)
+						alignedData.traces(n).eventProp = add_tau_for_specificEvents(alignedData.traces(n).eventProp,...
+							decay_eventCat{en},combine_stimRange(:,2),tauStimIDX,tauVal);
+						alignedData.traces(n).eventProp = add_caLevelDelta_for_specificEvents(alignedData.traces(n).eventProp,...
+							decay_eventCat{en},combine_stimRange(:,2),alignedData.traces(n).CaLevelMinDeltaData,...
+							'denomVal', alignedData.traces(n).hpStd);
+						alignedData.traces(n).eventProp = add_caLevelDelta_for_specificEvents(alignedData.traces(n).eventProp,...
+							decay_eventCat{en},combine_stimRange(:,2),alignedData.traces(n).CaLevelMinData,...
+							'newFieldName','caLevel');
+                    end
+                end
 				% alignedData.traces(n).eventProp = add_tau_for_specificEvents(alignedData.traces(n).eventProp,...
 				% 	'rebound',combine_stimRange(:,2),tauStimIDX,tauVal);
 				% alignedData.traces(n).eventProp = add_caLevelDelta_for_specificEvents(alignedData.traces(n).eventProp,...
@@ -460,7 +469,4 @@ function [alignedData_allTrials,varargout] = get_event_trace_allTrials(allTrials
 			'freq_field',sponfreqFilter.field,'freq_thresh',sponfreqFilter.thresh,'filter_direction',sponfreqFilter.direction);
 	end
 
-	% % Create a list showing the numbers of various events in each ROI
-	% [alignedData_event_list] = eventcat_list(alignedData_allTrials);
-	% varargout{1} = alignedData_event_list;
 end

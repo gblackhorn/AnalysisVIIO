@@ -9,40 +9,38 @@ function [violinData,statInfo,varargout] = violinplotPeriStimFreq2(periStimFreqB
     % stimNames = {'og-5s','og-5s ap-0.1s'}; % periStimFreqBarstat.stim. data using these stimulations will be compared
     % binIDX = [4, 4]; % the nth bin from the data listed in stimNames
 
-    normToFirst = true; % normalize all the data to the mean of the first group (first stimNames)
-    mmlHierarchicalVars = {'trialNames','roiNames'};
-    bootstrap = false; % Use bootstrap or conventional method
+    % Initialize input parser
+    p = inputParser;
 
-    plot_unit_width = 0.4; % normalized size of a single plot to the display
-    plot_unit_height = 0.4; % nomralized size of a single plot to the display
-    yTickInterval = 2; % Default interval for y-axis ticks
-    titleStr = sprintf('periStim eventFreq');
-    save_fig = false;
-    save_dir = [];
-    gui_save = 'off';
+    % Define optional parameters with default values
+    addParameter(p, 'normToFirst', true, @islogical);
+    addParameter(p, 'mmlHierarchicalVars', {'trialNames','roiNames'}, @iscell);
+    addParameter(p, 'bootstrap', false, @islogical);
+    addParameter(p, 'plot_unit_width', 0.4, @isnumeric);
+    addParameter(p, 'plot_unit_height', 0.4, @isnumeric);
+    addParameter(p, 'yTickInterval', 2, @isnumeric);
+    addParameter(p, 'titleStr', 'periStim eventFreq', @ischar);
+    addParameter(p, 'save_fig', false, @islogical);
+    addParameter(p, 'save_dir', [], @(x) ischar(x) || isstring(x));
+    addParameter(p, 'gui_save', 'off', @ischar);
+    addParameter(p, 'debug_mode', false, @islogical);
 
-    debug_mode = false;
+    % Parse the inputs
+    parse(p, varargin{:});
+    pars = p.Results;
 
-    % Optionals
-    for ii = 1:2:(nargin-3)
-        if strcmpi('titleStr', varargin{ii})
-            titleStr = varargin{ii+1}; % struct var including fields 'cat_type', 'cat_names' and 'cat_merge'
-        elseif strcmpi('normToFirst', varargin{ii})
-            normToFirst = varargin{ii+1};
-        elseif strcmpi('bootstrap', varargin{ii})
-            bootstrap = varargin{ii+1};
-        elseif strcmpi('yTickInterval', varargin{ii})
-            yTickInterval = varargin{ii+1};
-        elseif strcmpi('mmlHierarchicalVars', varargin{ii})
-            mmlHierarchicalVars = varargin{ii+1};
-        elseif strcmpi('save_fig', varargin{ii})
-            save_fig = varargin{ii+1};
-        elseif strcmpi('save_dir', varargin{ii})
-            save_dir = varargin{ii+1};
-        elseif strcmpi('gui_save', varargin{ii})
-            gui_save = varargin{ii+1};
-        end
-    end 
+    % Assign parsed values to variables
+    normToFirst = pars.normToFirst;
+    mmlHierarchicalVars = pars.mmlHierarchicalVars;
+    bootstrap = pars.bootstrap;
+    plot_unit_width = pars.plot_unit_width;
+    plot_unit_height = pars.plot_unit_height;
+    yTickInterval = pars.yTickInterval;
+    titleStr = pars.titleStr;
+    save_fig = pars.save_fig;
+    save_dir = pars.save_dir;
+    gui_save = pars.gui_save;
+    debug_mode = pars.debug_mode;
 
     % create some empty vars
     stimIDX = NaN(size(stimNames));

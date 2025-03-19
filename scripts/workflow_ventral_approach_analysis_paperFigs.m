@@ -58,7 +58,7 @@ uisave({'recdata_organized','alignedData_allTrials','opt','adata'},...
 
 %% ====================
 % 8 Align traces from all trials. Also collect the properties of events
-adata.event_type = 'stimWin'; % options: 'detected_events', 'stimWin'
+adata.event_type = 'detected_events'; % options: 'detected_events', 'stimWin'
 adata.eventTimeType = 'peak_time'; % rise_time/peak_time. Pick one for event time
 adata.traceData_type = 'lowpass'; % options: 'lowpass', 'raw', 'smoothed'
 adata.event_data_group = 'peak_lowpass';
@@ -76,15 +76,15 @@ adata.mod_pcn = true; % true/false modify the peak category names with func [mod
 % filter_alignedData = true; % true/false. Discard ROIs/neurons in alignedData if they don't have certain event types
 adata.caDeclineOnly = false; % true/false. Only keep the calcium decline trials (og group)
 adata.disROI = true; % true/false. If true, Keep ROIs using the setting below, and delete the rest
-adata.disROI_setting.stims = {'AP_GPIO-1-1s', 'OG-LED-5s', 'OG-LED-5s AP_GPIO-1-1s'};
-adata.disROI_setting.eventCats = {{'spon'}, {'spon'}, {'spon'}};
+adata.disROI_setting.stims = {'noStim', 'OG-100ms'};
+adata.disROI_setting.eventCats = {{'spon'}, {'spon'}};
 adata.sponfreqFilter.status = true; % true/false. If true, use the following settings to filter ROIs
 adata.sponfreqFilter.field = 'sponfq'; % 
 adata.sponfreqFilter.thresh = 0.05; % Hz. default 0.06
 adata.sponfreqFilter.direction = 'high';
 debug_mode = false; % true/false
 
-[alignedData_allTrials,alignedData_event_list] = get_event_trace_allTrials(recdata_organized,'event_type', adata.event_type,...
+[alignedData_allTrials] = get_event_trace_allTrials(recdata_organized,'event_type', adata.event_type,...
 	'traceData_type', adata.traceData_type, 'event_data_group', adata.event_data_group,'eventTimeType',adata.eventTimeType,...
 	'event_filter', adata.event_filter, 'event_align_point', adata.event_align_point, 'cat_keywords', adata.cat_keywords,...
 	'pre_event_time', adata.pre_event_time, 'post_event_time', adata.post_event_time,...
@@ -481,12 +481,12 @@ mgSetting.sponOnly = false; % true/false. If eventType is 'roi', and mgSetting.s
 mgSetting.seperate_spon = false; % true/false. Whether to seperated spon according to stimualtion
 mgSetting.dis_spon = false; % true/false. Discard spontaneous events
 mgSetting.modify_eventType_name = true; % Modify event type using function [mod_cat_name]
-mgSetting.groupField = {'peak_category','subNuclei'}; % options: 'fovID', 'stim_name', 'peak_category'; Field of eventProp_all used to group events 
+mgSetting.groupField = {'peak_category'}; % options: 'fovID', 'stim_name', 'peak_category', ,'subNuclei'; Field of eventProp_all used to group events 
 
 
 % rename the stimulation tag if og evokes spike at the onset of stimulation
 mgSetting.mark_EXog = false; % true/false. if true, rename the og to EXog if the value of field 'stimTrig' is 1
-mgSetting.og_tag = {'og', 'og&ap'}; % find og events with these strings. 'og' to 'Exog', 'og&ap' to 'EXog&ap'
+mgSetting.og_tag = {'og'}; % find og events with these strings. 'og' to 'Exog', 'og&ap' to 'EXog&ap'
 
 % arrange the order of group entries using function [sort_struct_with_str] with settings below. 
 mgSetting.sort_order = {'spon', 'trig', 'rebound', 'delay'}; % 'spon', 'trig', 'rebound', 'delay'

@@ -20,22 +20,33 @@ function [conWin,non_conWin,excludeWin,varargout] = get_condition_win(condition_
 	    end
 	end	
 
-	%% Content
-	conWin(:, 1) = condition_range(:, 1)-err_duration;
-	conWin(:, 2) = condition_range(:, 2)+err_duration;
+	%%
+	if ~isempty(condition_range)
+		conWin(:, 1) = condition_range(:, 1)-err_duration;
+		conWin(:, 2) = condition_range(:, 2)+err_duration;
 
-	non_conWin(:, 1) = [recording_time(1); (conWin(:, 2)+exclude_duration)]; % starts of windows
-	non_conWin(:, 2) = [conWin(:, 1); recording_time(end)]; % ends of windows
+		non_conWin(:, 1) = [recording_time(1); (conWin(:, 2)+exclude_duration)]; % starts of windows
+		non_conWin(:, 2) = [conWin(:, 1); recording_time(end)]; % ends of windows
 
-	excludeWin(:, 1) = conWin(:, 2);
-	excludeWin(:, 2) = conWin(:, 2)+exclude_duration;
+		excludeWin(:, 1) = conWin(:, 2);
+		excludeWin(:, 2) = conWin(:, 2)+exclude_duration;
 
-	% full durations of various window types
-	conWin_duration = sum(conWin(:, 2)-conWin(:, 1));
-	non_conWin_duration = sum(non_conWin(:, 2)-non_conWin(:, 1)); % full duration of spont windows
-	excludeWin_duration = sum(excludeWin(:, 2)-excludeWin(:, 1)); % full duration of spont windows
+		% full durations of various window types
+		conWin_duration = sum(conWin(:, 2)-conWin(:, 1));
+		non_conWin_duration = sum(non_conWin(:, 2)-non_conWin(:, 1)); % full duration of spont windows
+		excludeWin_duration = sum(excludeWin(:, 2)-excludeWin(:, 1)); % full duration of spont windows
+	else
+		conWin = [];
+		non_conWin = [recording_time(1), recording_time(end)];
+		excludeWin = [];
 
-	varargout{1} = conWin_duration;
-	varargout{2} = non_conWin_duration;
-	varargout{3} = excludeWin_duration;
+		% full durations of various window types
+		conWin_duration = 0;
+		non_conWin_duration = sum(non_conWin(:, 2)-non_conWin(:, 1)); % full duration of spont windows
+		excludeWin_duration = 0;
+	end
+
+		varargout{1} = conWin_duration;
+		varargout{2} = non_conWin_duration;
+		varargout{3} = excludeWin_duration;
 end
