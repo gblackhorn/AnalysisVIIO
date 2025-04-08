@@ -4,7 +4,7 @@ figFolder = projCfg.projectFolder;
 
 %% ==========
 % Example showing the difference between raw traces and CNMFe-denoised traces
-% Fig1 C, Fig2 A, C
+% Fig1 C; Fig2 A, C were extracted from the output plots
 close all
 saveFig = true; % true/false
 
@@ -19,8 +19,7 @@ csvTraceFilePath = fullfile(projCfg.dataFolder  , '2021-03-29-14-19-43_VIIOdataF
 
 %% ==========
 % Create the mean spontaneous traces in DAO and PO
-% Note: Load mat file containing all the recordings 
-% Fig2 B
+% Fig2 B1
 close all
 saveFig = true; % true/false
 saveDir = fullfile(projCfg.resultsFolder,'SponEventExample');
@@ -46,6 +45,9 @@ end
 
 %% ==========
 % Extract properties of events, group and analyze them
+% Fig2 B2-4, E1-1; Fig3 B2, C2; Fig4 D2, Fig4-supp1 B, Fig5 B2
+
+close all
 % Settings for plots
 saveFig = true; % true/false
 saveDir = fullfile(projCfg.resultsFolder,'EventProp');
@@ -119,9 +121,11 @@ end
 
 %% ==========
 % Extract frequency and interval of spon events in ROIs and analyze them
+% Fig2 D
+
 % Settings for plots
 close all
-saveFig = false; % true/false
+saveFig = true; % true/false
 saveDir = fullfile(projCfg.resultsFolder,'SponFreq');
 roiGroupFields = {'peak_category','subNuclei'}; % Group ROI entries using these fields
 roiPropNames = {'sponfq','sponInterval','cv2'}; % Properties to by analyzed
@@ -153,10 +157,11 @@ roiStructSpon = filter_entries_in_structure(roiStruct, 'group',...
 
 %% ==========
 % Analyze the peristimulus time histograms (PSTH) of event frequency
+% Fig3 A3; Fig4 C1
 close all
 
 % Settings for PSTH analysis
-saveFig = false; % true/false. Save figures or not
+saveFig = true; % true/false. Save figures or not
 saveDir = fullfile(projCfg.resultsFolder,'eventFreqPSTH'); % Directory to save figures
 binWidth = 1; % unit: second. The width of the generic bins for the PSTH
 preStimDuration = 6; % unit: second. Include events happened before the onset of stimulations
