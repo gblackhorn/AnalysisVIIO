@@ -69,7 +69,7 @@ Only a subset of fields are retained in order to keep the repository small. The 
 | `trialSynchRatio` | Overall cluster event ratio for the trial |
 | `clusterSize` | Number of ROIs participating in the cluster |
 
-These field lists match those defined in `functions/Organize/pruneVIIOdataStruct.m` which was used to prune the original data structure.
+These field lists match those defined in `functions/data_processing/pruneVIIOdataStruct.m` which was used to prune the original data structure.
 
 
 
@@ -152,4 +152,4 @@ The tables below list the fields with short descriptions.
 | `trialSynchRatio` | Overall cluster event ratio for the trial |
 | `clusterSize` | Number of ROIs participating in the cluster |
 
-These field lists match those defined in `functions/Organize/pruneVIIOdataStruct.m` which was used to prune the original data structure.
+These field lists match those defined in `functions/data_processing/pruneVIIOdataStruct.m` which was used to prune the original data structure.
