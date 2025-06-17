@@ -35,6 +35,26 @@ addpath(genpath('D:\guoda\Documents\MATLAB\Codes\SharedLibs'));
 % Add CNMF-E related libs
 addpath(genpath('D:\guoda\Documents\MATLAB\Codes\CNMF_E\ca_source_extraction'));
 
+% Step 4.1: Add 'functions' folder and its subfolders to the path
+functionsPath = fullfile(projectFolder, 'functions');
+if isfolder(functionsPath)
+    addpath(genpath(functionsPath));
+    fprintf('Added to path: %s (and subfolders)\n', functionsPath);
+else
+    warning('functions folder not found at: %s', functionsPath);
+end
+
+% Step 4.2: Remove 'nvoke-analysis' and its subfolders from the path
+parentFolder = fileparts(projectFolder); % Go one level up
+nvokePath = fullfile(parentFolder, 'nvoke-analysis');
+if isfolder(nvokePath)
+    rmpath(genpath(nvokePath));
+    fprintf('Removed from path: %s (and subfolders)\n', nvokePath);
+else
+    disp('nvoke-analysis folder not found. Skipping path removal.');
+end
+
+
 % Step 5: Load VIIOdata.mat automatically
 dataFile = fullfile(projCfg.dataFolder, 'VIIOdata.mat');
 if isfile(dataFile)
